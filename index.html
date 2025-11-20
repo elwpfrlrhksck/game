@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Final DS</title>
+    <title>Focus Trainer: Final Complete</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -10,7 +10,7 @@
             overflow: hidden;
             background-color: #000;
             color: white;
-            font-family: 'Pretendard', sans-serif;
+            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
             touch-action: none;
             display: flex;
             justify-content: center;
@@ -73,10 +73,9 @@
             margin: 5px;
             border-radius: 8px;
             border: 1px solid #444;
-            /* 하단 전체가 터치패드 역할 */
         }
 
-        /* 퀴즈 영역 (상단 고정) */
+        /* 퀴즈 영역 */
         #quiz-area {
             width: 100%;
             height: 40%;
@@ -91,12 +90,12 @@
             justify-content: center;
             position: relative;
             margin-bottom: 10px;
-            pointer-events: auto; /* 퀴즈 영역 터치 허용 (수동 조작용) */
+            pointer-events: auto; 
             z-index: 20;
         }
 
         .q-type { color: #aaa; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
-        .q-text { color: white; font-size: 18px; font-weight: bold; line-height: 1.3; word-break: keep-all; }
+        .q-text { color: white; font-size: 17px; font-weight: bold; line-height: 1.3; word-break: keep-all; }
         .q-answer { color: #00ff00; font-size: 18px; margin-top: 5px; font-weight: bold; display: none; }
         .q-timer { color: #00ffff; font-size: 24px; margin-top: 5px; font-family: monospace; display: none;}
         
@@ -119,7 +118,6 @@
             touch-action: none;
         }
         
-        /* 터치 피드백 (손가락 위치 표시) */
         #touch-feedback {
             position: absolute;
             width: 40px; height: 40px;
@@ -130,7 +128,7 @@
             pointer-events: none;
         }
 
-        /* 오버레이 (시작/종료/설정) */
+        /* 오버레이 */
         .overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -168,12 +166,13 @@
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
-            max-height: 80vh;
+            max-height: 75vh;
             overflow-y: auto;
         }
         
         .section-title { color: #00ffff; font-size: 16px; margin: 15px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .radio-group { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
         label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ddd; font-size: 14px; }
         
         /* 문제 선택 모달 */
@@ -200,7 +199,7 @@
             font-size: 13px;
             text-align: left;
         }
-        .problem-item input { margin-right: 10px; margin-top: 3px; }
+        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; }
 
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
@@ -224,8 +223,10 @@
         <div id="game-clear" class="overlay">
             <h1 style="color:#00ff00">모든 문제 완료</h1>
             <p>선택한 문제를 모두 풀었습니다.</p>
-            <button class="btn-start" onclick="app.restartGame()">다시 시작 (랜덤 재출제)</button>
-            <button class="btn-start btn-sub" onclick="location.reload()">종료 (처음으로)</button>
+            <div style="display:flex; flex-direction:column; width:100%; align-items:center;">
+                <button class="btn-start" onclick="app.restartGame()">다시 시작 (문제 섞기)</button>
+                <button class="btn-start btn-sub" onclick="location.reload()">종료 (첫 화면)</button>
+            </div>
         </div>
     </div>
 
@@ -258,9 +259,14 @@
                 <label><input type="radio" name="diff" value="hard"> 어려움 (0.6배)</label>
             </div>
             
-            <!-- 음성 -->
-            <div class="section-title">음성 인식</div>
-            <label><input type="checkbox" id="use-voice" checked> 사용 (Chrome/Safari 권장)</label>
+            <!-- 음성 설정 -->
+            <div class="section-title">음성 / TTS 설정</div>
+            <div class="checkbox-row">
+                <label><input type="checkbox" id="use-voice" checked> 내 목소리 인식 (Chrome 권장)</label>
+            </div>
+            <div class="checkbox-row">
+                <label><input type="checkbox" id="use-tts" checked> 문제 읽어주기 (TTS)</label>
+            </div>
             
             <!-- 문제 설정 -->
             <div class="section-title">문제 출제 방식</div>
@@ -269,11 +275,11 @@
                 <label><input type="radio" name="q-mode" value="select" onchange="ui.toggleProblemSelector(true)"> 문제 선택</label>
             </div>
 
-            <!-- 문제 선택기 (숨김 상태로 시작) -->
+            <!-- 문제 선택기 -->
             <div id="problem-selector">
                 <div class="tab-container">
-                    <div class="tab active" onclick="ui.switchTab('prev')">기존 기출</div>
-                    <div class="tab" onclick="ui.switchTab('oral')">추가 구술</div>
+                    <div id="tab-prev" class="tab active" onclick="ui.switchTab('prev')">기존 기출</div>
+                    <div id="tab-oral" class="tab" onclick="ui.switchTab('oral')">추가 구술</div>
                 </div>
                 
                 <div id="list-prev" class="problem-list"></div>
@@ -286,75 +292,76 @@
             </div>
         </div>
 
-        <button class="btn-start" onclick="app.init()">훈련 시작</button>
+        <button class="btn-start" onclick="app.start()">훈련 시작</button>
     </div>
 </div>
 
 <script>
 /* ------------------------------------------------------------------
    1. 데이터 (문제 DB)
+   - 번호 포함 (선택 UI용), 게임 중에는 정규식으로 제거
+   - 구술: 6, 12 제외
+   - 기출: 7 제외
 ------------------------------------------------------------------ */
-// 구술 (6, 12번 제외, 번호/정답 제거, 질문만 추출)
 const QUESTIONS_ORAL = [
-    "[ ARL 설치차량의 접지 복귀 방법 ]",
-    "[ 7400호대 디젤전기기관차에 설치된 전동기의 종류 ]",
-    "[ 지적확인 환호응답 환호용어(기외정차 경고등 경고 시 등) ]",
-    "[ ATP 운전모드의 종류 ]",
-    "[ ATP 운행 시 특수운전기능 활성화 시 이동거리 제한과 활성화 시간 제한? ]",
-    // 6번 제외
-    "[ 지도표와 지도권에 대한 설명 ]",
-    "[ 지령식의 정의와 통보 받고 기관사의 조치(운전취급규정 제138조) ]",
-    "[ 비장착모드로 운행하여야 하는 경우 ]",
-    "[ 저유압 기관정지장치가 동작하는 경우 ]",
-    "[ 디젤전기기관차 저압계통의 종류 ]",
-    // 12번 제외
-    "[ 기관전부에 있는 치차의 종류와 부속장치 구동치차와 반대방향으로 회전하는 치차의 종류 ]"
+    "1. ARL 설치차량의 접지 복귀 방법",
+    "2. 7400호대 디젤전기기관차에 설치된 전동기의 종류",
+    "3. 지적확인 환호응답 환호용어(기외정차 경고등 경고 시 등)",
+    "4. ATP 운전모드의 종류",
+    "5. ATP 운행 시 특수운전기능 활성화 시 이동거리 제한과 활성화 시간 제한?",
+    // 6 제외
+    "7. 지도표와 지도권에 대한 설명",
+    "8. 지령식의 정의와 통보 받고 기관사의 조치(운전취급규정 제138조)",
+    "9. 비장착모드로 운행하여야 하는 경우",
+    "10. 저유압 기관정지장치가 동작하는 경우",
+    "11. 디젤전기기관차 저압계통의 종류",
+    // 12 제외
+    "13. 기관전부에 있는 치차의 종류와 부속장치 구동치차와 반대방향으로 회전하는 치차의 종류"
 ];
 
-// 기출 (7번 제외)
 const QUESTIONS_PREV = [
-    "[ 공기제동시험을 시행하는 경우는 언제인가? ]",
-    "[ 제동감도시험을 생략할 수 있는 경우는 언제인가? ]",
-    "[ 열차 운행 중 제동기 사용불능차 발생시 조치는? ]",
-    "[ 1폐색구간에 2개 열차를 운전할 수 있는 경우는 언제인가 ]",
-    "[ 복선 자동폐색구간에서 통신식 시행 경우 (5가지) ]",
-    "[ 통신식 시행시의 운전법 ]",
-    "[ 자동폐색식과 지도통신식 병용시의 운전취급법 ]",
-    // 7번 제외
-    "[ 구원열차 요구시의 취급법(구원을 요구한 고장열차) ]",
-    "[ 구원열차 운전법(구원하러 가는 열차) ]",
-    "[ 전령법 시행 시 운전취급법은? ]",
-    "[ 원방신호 주의신호 현시 시 주의신호 속도 이상으로 운전가능한 경우는 언제인가 ]",
-    "[ 기적 고장시의 운전법 ]",
-    "[ 정거장에서 열차를 동시에 진입 및 진출 가능한 경우는 언제인가 ]",
-    "[ 침수된 선로를 운전 시 열차 운전법은? ]",
-    "[ 총괄제어시 피제어차의 기기취급법과 운전보안장치 취급법 ]",
-    "[ 총괄제어시 피제어차를 제어차로 만드는 방법 ]",
-    "[ 26-F제어변의 기능과 고장시의 현상 ]",
-    "[ J-1중계변의 기능과 고장시의 현상 ]",
-    "[ 자변 취급법(자변으로 제동 체결시 체결과정) ]",
-    "[ 단변 취급법(단변으로 제동 체결시 체결과정) ]",
-    "[ A-1충기차단안내변 동작원인과 현상, 조치방법 ]",
-    "[ 주공기압력이 9키로까지 상승불능시 원인 5가지 ]",
-    "[ 공기압축기 계속 무부하 운전시의 조치 순서 ]",
-    "[ 기관제어패널의 무충전/무전원등(NVR등) 점등 시 확인해야 될 것 5가지 ]",
-    "[ 여자제한 경보의 현상과 조치방법 ]",
-    "[ 기관회전속도는 정상이나 주발전기 출력이 나지 않는 경우 ]",
-    "[ 조속기중지등 점등 시의 현상 3가지에 대해 말해보십시오 ]",
-    "[ 기관제어패널의 조속기중지등 점등 원인 3가지에 대해 말해보십시오 ]",
-    "[ 기관온도스위치 기능시험 방법과 동작온도 ]",
-    "[ TR16 전이제어모듈 기능검사법과 발전제동의 원리 ]",
-    "[ 경보기모듈 AN29 점등 시기 6가지, 점검방법 ]",
-    "[ ATS, ATC, ATP, 열차방호장치는 무엇인가 ]",
-    "[ 열차방호장치 동작시 운전취급법 ]",
-    "[ 열차방호장치 차단 방법 ]",
-    "[ 신호보안장치 장애발생시(고장시) 기관차 조치 3개 ]",
-    "[ 열차제어장치 차단운전 승인번호를 부여받아 열차를 운행시킬 수 있는 경우 ]",
-    "[ ATP 레벨STM의 모드에는 어떤 것들이 있는가 ]",
-    "[ ATP 레벨 STM의 입환모드는 언제 사용하는가 ]",
-    "[ ATP 레벨 STM의 공사모드는 언제 사용하는가 ]",
-    "[ ATP 레벨 STM의 특수모드는 언제 사용하는가 ]",
-    "[ ATP 비장착모드(레벨 0)를 사용하는 경우 ]"
+    "1. 공기제동시험을 시행하는 경우는 언제인가?",
+    "2. 제동감도시험을 생략할 수 있는 경우는 언제인가?",
+    "3. 열차 운행 중 제동기 사용불능차 발생시 조치는?",
+    "4. 1폐색구간에 2개 열차를 운전할 수 있는 경우는 언제인가",
+    "5. 복선 자동폐색구간에서 통신식 시행 경우 (5가지)",
+    "5-1. 통신식 시행시의 운전법",
+    "6. 자동폐색식과 지도통신식 병용시의 운전취급법",
+    // 7 제외
+    "8. 구원열차 요구시의 취급법(구원을 요구한 고장열차)",
+    "9. 구원열차 운전법(구원하러 가는 열차)",
+    "10. 전령법 시행 시 운전취급법은?",
+    "11. 원방신호 주의신호 현시 시 주의신호 속도 이상으로 운전가능한 경우는 언제인가",
+    "12. 기적 고장시의 운전법",
+    "13. 정거장에서 열차를 동시에 진입 및 진출 가능한 경우는 언제인가",
+    "14. 침수된 선로를 운전 시 열차 운전법은?",
+    "15. 총괄제어시 피제어차의 기기취급법과 운전보안장치 취급법",
+    "16. 총괄제어시 피제어차를 제어차로 만드는 방법",
+    "17-18. 26-F제어변의 기능과 고장시의 현상",
+    "19-20. J-1중계변의 기능과 고장시의 현상",
+    "21. 자변 취급법(자변으로 제동 체결시 체결과정)",
+    "22. 단변 취급법(단변으로 제동 체결시 체결과정)",
+    "23. A-1충기차단안내변 동작원인과 현상, 조치방법",
+    "24. 주공기압력이 9키로까지 상승불능시 원인 5가지",
+    "25. 공기압축기 계속 무부하 운전시의 조치 순서",
+    "26. 기관제어패널의 무충전/무전원등(NVR등) 점등 시 확인해야 될 것 5가지",
+    "27. 여자제한 경보의 현상과 조치방법",
+    "28. 기관회전속도는 정상이나 주발전기 출력이 나지 않는 경우",
+    "29. 조속기중지등 점등 시의 현상 3가지에 대해 말해보십시오",
+    "30. 기관제어패널의 조속기중지등 점등 원인 3가지에 대해 말해보십시오",
+    "31. 기관온도스위치 기능시험 방법과 동작온도",
+    "32. TR16 전이제어모듈 기능검사법과 발전제동의 원리",
+    "33. 경보기모듈 AN29 점등 시기 6가지, 점검방법",
+    "34. ATS, ATC, ATP, 열차방호장치는 무엇인가",
+    "35. 열차방호장치 동작시 운전취급법",
+    "35-1. 열차방호장치 차단 방법",
+    "36. 신호보안장치 장애발생시(고장시) 기관차 조치 3개",
+    "37. 열차제어장치 차단운전 승인번호를 부여받아 열차를 운행시킬 수 있는 경우",
+    "38. ATP 레벨STM의 모드에는 어떤 것들이 있는가",
+    "39. ATP 레벨 STM의 입환모드는 언제 사용하는가",
+    "40. ATP 레벨 STM의 공사모드는 언제 사용하는가",
+    "41. ATP 레벨 STM의 특수모드는 언제 사용하는가",
+    "42. ATP 비장착모드(레벨 0)를 사용하는 경우"
 ];
 
 /* ------------------------------------------------------------------
@@ -364,12 +371,12 @@ class TouchPad {
     constructor(areaId, feedbackId, onMove) {
         this.area = document.getElementById(areaId);
         this.feedback = document.getElementById(feedbackId);
-        this.onMove = onMove; // 콜백 (x, y)
+        this.onMove = onMove; 
         
         this.active = false;
         this.touchId = null;
         this.origin = { x: 0, y: 0 };
-        this.maxDist = 50; // 최대 감도 거리
+        this.maxDist = 50; 
 
         // 이벤트 바인딩
         this.area.addEventListener('touchstart', e => this.start(e), {passive: false});
@@ -393,11 +400,8 @@ class TouchPad {
             clientX = e.clientX;
             clientY = e.clientY;
         }
-
-        // 터치한 곳이 기준점(Origin)이 됨
         this.origin = { x: clientX, y: clientY };
         
-        // 피드백 표시
         this.feedback.style.display = 'block';
         this.feedback.style.left = clientX + 'px';
         this.feedback.style.top = clientY + 'px';
@@ -425,23 +429,18 @@ class TouchPad {
             clientY = e.clientY;
         }
 
-        // 기준점으로부터의 거리 계산
         const dx = clientX - this.origin.x;
         const dy = clientY - this.origin.y;
         
-        // 값 정규화 (-1.0 ~ 1.0)
-        // maxDist만큼 움직이면 최대 속도
         let nx = Math.max(-1, Math.min(1, dx / this.maxDist));
         let ny = Math.max(-1, Math.min(1, dy / this.maxDist));
         
-        // 피드백 원 이동 (시각적 효과)
         const visualDist = Math.min(Math.sqrt(dx*dx + dy*dy), this.maxDist);
         const angle = Math.atan2(dy, dx);
         const vx = Math.cos(angle) * visualDist;
         const vy = Math.sin(angle) * visualDist;
         
         this.feedback.style.transform = `translate(calc(-50% + ${vx}px), calc(-50% + ${vy}px))`;
-        
         this.onMove(nx, ny);
     }
 
@@ -463,7 +462,6 @@ class TrackerGame {
         
         this.player = { x: 0, y: 0, radius: 8, vx: 0, vy: 0, targetVx: 0, targetVy: 0 };
         this.zone = { x: 0, y: 0, width: 100, height: 100, radius: 0, targetX: 0, targetY: 0 };
-        this.easyDir = {x:0, y:0};
         
         this.difficulty = 'normal'; 
         this.playerSpeed = 6; 
@@ -503,7 +501,6 @@ class TrackerGame {
         this.zone.targetX = this.zone.x;
         this.zone.targetY = this.zone.y;
 
-        // 난이도 속도 (0.2배 / 0.4배 / 0.6배)
         if (diff === 'easy') {
             this.zoneMaxSpeed = this.playerSpeed * 0.2;
             this.zone.width = 140; this.zone.height = 140;
@@ -527,10 +524,8 @@ class TrackerGame {
     update() {
         if (!this.active) return;
 
-        // 관성 적용
-        this.player.vx += (this.player.targetVx - this.player.vx) * 0.15; // 민감도 약간 상향
+        this.player.vx += (this.player.targetVx - this.player.vx) * 0.15;
         this.player.vy += (this.player.targetVy - this.player.vy) * 0.15;
-
         this.player.x += this.player.vx;
         this.player.y += this.player.vy;
         this.player.x = Math.max(0, Math.min(this.canvas.width, this.player.x));
@@ -670,6 +665,7 @@ class QuizManager {
         this.timerRef = null;
         this.nextTimer = null;
         this.useVoice = false;
+        this.useTTS = false; // TTS 옵션 추가
         this.recognition = null;
         this.initVoice();
     }
@@ -693,7 +689,6 @@ class QuizManager {
 
     processVoice(txt) {
         if (this.state === 'question') {
-            // "예", "네"로 시작하면 바로 답변 시작
             if (txt.startsWith('예') || txt.startsWith('네')) {
                 this.startAnswering();
             }
@@ -708,10 +703,10 @@ class QuizManager {
         this.currentSet = [...list];
     }
 
-    start(useVoice) {
+    start(useVoice, useTTS) {
         this.active = true;
         this.useVoice = useVoice;
-        // 셔플 후 시작
+        this.useTTS = useTTS;
         this.remaining = [...this.currentSet].sort(() => Math.random() - 0.5);
         if (useVoice && this.recognition) try{this.recognition.start()}catch(e){}
         
@@ -723,6 +718,7 @@ class QuizManager {
         if (this.recognition) try{this.recognition.stop()}catch(e){}
         clearTimeout(this.nextTimer);
         cancelAnimationFrame(this.timerRef);
+        window.speechSynthesis.cancel(); // TTS 중단
     }
 
     scheduleNext() {
@@ -746,14 +742,22 @@ class QuizManager {
 
     showQuestion() {
         if (!this.active) return;
-        const q = this.remaining.pop();
-        this.currentQ = q;
+        const rawQ = this.remaining.pop();
+        this.currentQ = rawQ;
         
+        // 화면에 보여줄 텍스트 (번호 제거)
+        // 정규식: 시작 부분의 "숫자." 또는 "숫자-숫자." 패턴 제거
+        const displayText = rawQ.replace(/^[0-9]+(-[0-9]+)?\.\s*/, "");
+
         this.state = 'question';
         document.getElementById('q-type').innerText = "QUESTION";
-        // 문제 형식: 객체({q,a})가 아니라 단순 문자열 배열임
-        document.getElementById('q-text').innerText = q; 
+        document.getElementById('q-text').innerText = displayText;
         
+        // TTS 읽기
+        if (this.useTTS) {
+            this.speak(displayText);
+        }
+
         const micEl = document.getElementById('mic-status');
         if (this.useVoice) {
             micEl.innerText = "🎤 '예'라고 답하면 시작";
@@ -763,8 +767,18 @@ class QuizManager {
             micEl.className = "";
         }
     }
+    
+    speak(text) {
+        if (!window.speechSynthesis) return;
+        window.speechSynthesis.cancel(); // 이전 음성 중단
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'ko-KR';
+        utterance.rate = 1.0; // 속도 조절 가능
+        window.speechSynthesis.speak(utterance);
+    }
 
     startAnswering() {
+        window.speechSynthesis.cancel(); // 답변 시작하면 TTS 중단
         this.state = 'answering';
         this.timerStart = performance.now();
         document.getElementById('q-type').innerText = "RECORDING...";
@@ -791,7 +805,6 @@ class QuizManager {
         this.state = 'result';
         cancelAnimationFrame(this.timerRef);
         document.getElementById('q-type').innerText = "DONE";
-        // 답변은 화면에 보여주지 않음 (요청 사항) -> '답변 완료' 메시지만 표시
         document.getElementById('mic-status').innerText = "3초 후 자동 닫힘";
         document.getElementById('mic-status').className = "";
         
@@ -814,18 +827,29 @@ const ui = {
         document.getElementById('problem-selector').style.display = show ? 'block' : 'none';
     },
     switchTab: function(tab) {
-        const tabs = document.querySelectorAll('.tab');
-        tabs.forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-        
-        document.getElementById('list-prev').style.display = tab === 'prev' ? 'block' : 'none';
-        document.getElementById('list-oral').style.display = tab === 'oral' ? 'block' : 'none';
+        const tabPrev = document.getElementById('tab-prev');
+        const tabOral = document.getElementById('tab-oral');
+        const listPrev = document.getElementById('list-prev');
+        const listOral = document.getElementById('list-oral');
+
+        if (tab === 'prev') {
+            tabPrev.classList.add('active');
+            tabOral.classList.remove('active');
+            listPrev.style.display = 'block';
+            listOral.style.display = 'none';
+        } else {
+            tabPrev.classList.remove('active');
+            tabOral.classList.add('active');
+            listPrev.style.display = 'none';
+            listOral.style.display = 'block';
+        }
     },
     renderList: function(id, list) {
         const container = document.getElementById(id);
+        // 기본 체크 해제 상태로 렌더링
         container.innerHTML = list.map(q => `
             <label class="problem-item">
-                <input type="checkbox" value="${q}" checked>
+                <input type="checkbox" value="${q}">
                 ${q}
             </label>
         `).join('');
@@ -857,6 +881,7 @@ const app = {
     start: function() {
         const diff = document.querySelector('input[name="diff"]:checked').value;
         const useVoice = document.getElementById('use-voice').checked;
+        const useTTS = document.getElementById('use-tts').checked;
         
         const selectedQ = ui.getSelectedQuestions();
         if (selectedQ.length === 0) {
@@ -866,7 +891,7 @@ const app = {
 
         quiz.setQuestions(selectedQ);
         tracker.start(diff);
-        quiz.start(useVoice);
+        quiz.start(useVoice, useTTS);
 
         document.getElementById('start-screen').style.display = 'none';
         document.getElementById('game-over').style.display = 'none';
@@ -891,34 +916,29 @@ const app = {
         document.getElementById('game-clear').style.display = 'flex';
     },
     restartGame: function() {
-        // 선택된 문제 세트 그대로 다시 시작
         const useVoice = document.getElementById('use-voice').checked;
+        const useTTS = document.getElementById('use-tts').checked;
         document.getElementById('game-clear').style.display = 'none';
         
         tracker.active = true;
-        tracker.health = 100; // 체력 초기화
-        quiz.start(useVoice); // 다시 셔플 및 시작
+        tracker.health = 100; 
+        quiz.start(useVoice, useTTS);
         this.loop();
     }
 };
 
-// 초기화
+// 초기화 실행
 app.init();
 
-// 터치패드 연결
 new TouchPad('touchpad-area', 'touch-feedback', (x, y) => {
     tracker.setInput(x, y);
 });
 
-// 퀴즈 영역 터치
 document.getElementById('quiz-area').addEventListener('mousedown', () => quiz.handleTouch());
 document.getElementById('quiz-area').addEventListener('touchstart', (e) => {
     e.preventDefault();
     quiz.handleTouch();
 });
-
-// 앱 시작 버튼 연결
-document.querySelector('.btn-start').onclick = () => app.start();
 
 </script>
 </body>
