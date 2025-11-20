@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Difficulty & Voice</title>
+    <title>Focus Trainer: Pro Drill (Fixed)</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -35,6 +35,8 @@
             filter: brightness(0.7);
         }
 
+        /* 터치 영역: 퀴즈 오버레이보다 아래에 있지만, 
+           오버레이가 이벤트를 무시하므로 터치 가능해짐 */
         .touch-zone {
             position: absolute;
             top: 0; bottom: 0;
@@ -151,6 +153,8 @@
             z-index: 50;
             background: rgba(0,0,0,0.4);
             display: none;
+            /* 핵심 수정: 배경 터치는 통과시키고, 카드 터치만 받음 */
+            pointer-events: none; 
         }
 
         .quiz-card {
@@ -163,7 +167,8 @@
             backdrop-filter: blur(5px);
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             text-align: center;
-            pointer-events: auto;
+            /* 카드는 터치 가능해야 함 */
+            pointer-events: auto; 
             transition: border-color 0.3s;
         }
         
@@ -308,7 +313,7 @@
                 <div id="mic-status">마이크 대기 중...</div>
                 <div class="quiz-hint" id="q-hint">
                     "예" → 답변 → "이상입니다"<br>
-                    (Space/터치: 수동 조작)
+                    (수동 조작: 카드 터치)
                 </div>
             </div>
         </div>
@@ -338,9 +343,9 @@
             <div class="option-group">
                 <span class="option-label">난이도 (Zone 이동 속도)</span>
                 <div class="radio-group">
-                    <label class="radio-label"><input type="radio" name="difficulty" value="0.5"> 쉬움 (0.5배)</label>
-                    <label class="radio-label"><input type="radio" name="difficulty" value="1.0" checked> 보통 (1.0배)</label>
-                    <label class="radio-label"><input type="radio" name="difficulty" value="2.0"> 어려움 (2.0배)</label>
+                    <label class="radio-label"><input type="radio" name="difficulty" value="0.5"> 쉬움</label>
+                    <label class="radio-label"><input type="radio" name="difficulty" value="1.0" checked> 보통</label>
+                    <label class="radio-label"><input type="radio" name="difficulty" value="2.0"> 어려움</label>
                 </div>
             </div>
 
@@ -369,7 +374,6 @@
 </div>
 
 <script>
-// 기본 예시 문제 (철도/상식)
 const DEFAULT_DATA = [
     { q: "철도차량 운전면허 갱신 주기는?", a: "10년" },
     { q: "7400호대 기관차의 최고 속도는?", a: "150km/h" },
@@ -403,10 +407,7 @@ class Trainer {
         this.zoneTimer = 0; 
         this.currentZoneSpeedCap = 0; 
         
-        // 난이도 계수 (기본 1.0)
         this.difficultyMultiplier = 1.0; 
-        // 플레이어 바늘의 대략적 최대 속도 (0.5 per frame * 60fps = 30 units/sec)
-        // 이것을 기준으로 배율을 적용
         this.PLAYER_MAX_SPEED_PER_FRAME = 0.5; 
 
         // 퀴즈 및 음성
@@ -452,12 +453,25 @@ class Trainer {
     }
 
     processVoiceCommand(text) {
+        // 공백 제거하여 인식률 향상
+        const cleanText = text.replace(/\s+/g, '');
+        
         if (this.quizState === 'waiting_start') {
-            if (text.includes('예') || text.includes('네')) this.startStopwatch();
+            // 시작 키워드 확장: 예, 네, 넵, 옙, 어, 응, 시작
+            const startKeywords = ['예', '네', '넵', '옙', '어', '응', '시작', '출발'];
+            if (startKeywords.some(key => cleanText.includes(key))) {
+                this.startStopwatch();
+            }
         } else if (this.quizState === 'answering') {
-            if (text.includes('이상') || text.includes('이상입니다')) this.stopStopwatch();
+            // 종료 키워드
+            if (cleanText.includes('이상') || cleanText.includes('끝') || cleanText.includes('완료')) {
+                this.stopStopwatch();
+            }
         } else if (this.quizState === 'answer_check') {
-            if (text.includes('다음')) this.handleManualNext();
+            // 다음 키워드
+            if (cleanText.includes('다음') || cleanText.includes('넘어가')) {
+                this.handleManualNext();
+            }
         }
     }
 
@@ -481,22 +495,28 @@ class Trainer {
 
         const handleTouch = (key, pressed, e) => {
             if (!this.active) return;
+            // 스크롤/줌 방지를 위해 preventDefault
             if (e.cancelable) e.preventDefault();
             this.keys[key] = pressed;
         };
         const leftZone = document.getElementById('touch-left');
         const rightZone = document.getElementById('touch-right');
 
+        // passive: false 옵션 중요 (preventDefault 호출을 위해)
         leftZone.addEventListener('touchstart', (e) => handleTouch('down', true, e), {passive: false});
         leftZone.addEventListener('touchend', (e) => handleTouch('down', false, e));
         rightZone.addEventListener('touchstart', (e) => handleTouch('up', true, e), {passive: false});
         rightZone.addEventListener('touchend', (e) => handleTouch('up', false, e));
 
+        // 퀴즈 오버레이의 카드 수동 터치 처리
         const quizOverlay = document.getElementById('quiz-overlay');
         const touchHandler = (e) => {
             if (!this.active) return;
-            if (e.type === 'touchstart') e.preventDefault();
-            if (e.target.closest('.quiz-card')) this.handleManualInput();
+            // 오버레이 배경이 아닌 'quiz-card' 내부를 눌렀을 때만 반응
+            if (e.target.closest('.quiz-card')) {
+                e.preventDefault(); // 더블탭 줌 방지
+                this.handleManualInput();
+            }
         };
         quizOverlay.addEventListener('touchstart', touchHandler, {passive: false});
         quizOverlay.addEventListener('mousedown', touchHandler);
@@ -531,7 +551,7 @@ class Trainer {
         document.getElementById('q-type').innerText = "ANSWER CHECK";
         document.getElementById('q-type').style.color = "#00ff00";
         document.getElementById('quiz-stopwatch').innerText = `⏱️ ${duration.toFixed(2)}초`;
-        document.getElementById('mic-status').innerText = "Space / 터치하여 닫기";
+        document.getElementById('mic-status').innerText = "Space / 카드 터치하여 닫기";
         document.getElementById('mic-status').className = "";
         document.getElementById('quiz-card-inner').classList.remove('card-active');
     }
@@ -543,7 +563,6 @@ class Trainer {
             this.quizEnabled = this.questions.length > 0;
             this.useVoice = document.getElementById('use-voice').checked;
             
-            // 난이도 읽기
             const radios = document.getElementsByName('difficulty');
             for (let radio of radios) {
                 if (radio.checked) {
@@ -632,20 +651,16 @@ class Trainer {
     }
 
     updateZone(dt) {
-        // 1. 행동 결정 (AI)
         this.zoneTimer -= dt;
         if (this.zoneTimer <= 0) {
             this.zoneTarget = Math.random() * (100 - this.zoneSize); 
             
-            // 속도 결정: 기본 0.05 ~ Player Max Speed(0.5) 범위에서 랜덤
-            // 여기에 난이도 배율(difficultyMultiplier) 적용
             let baseRandomSpeed = (Math.random() * this.PLAYER_MAX_SPEED_PER_FRAME) + 0.05;
             this.currentZoneSpeedCap = baseRandomSpeed * this.difficultyMultiplier;
 
             this.zoneTimer = Math.random() * 2000 + 500; 
         }
 
-        // 2. 물리 기반 이동
         const dist = this.zoneTarget - this.zoneMin;
         const dir = Math.sign(dist);
         
@@ -655,7 +670,6 @@ class Trainer {
             this.zoneVelocity *= 0.9; 
         }
 
-        // 속도 제한 (난이도 적용된 값 사용)
         const limit = this.currentZoneSpeedCap;
         
         if (this.zoneVelocity > limit) this.zoneVelocity = limit;
@@ -676,7 +690,6 @@ class Trainer {
 
         this.zoneMax = this.zoneMin + this.zoneSize;
 
-        // 3. 판정 및 내구도
         const zoneCenter = (this.zoneMin + this.zoneMax) / 2;
         const distance = Math.abs(this.speed - zoneCenter);
         const halfZone = this.zoneSize / 2;
