@@ -75,10 +75,10 @@
             border: 1px solid #444;
         }
 
-        /* 퀴즈 영역 (상단 고정) */
+        /* 퀴즈 영역 */
         #quiz-area {
             width: 100%;
-            height: 40%;
+            height: 35%;
             background: #222;
             border: 1px solid #555;
             border-radius: 8px;
@@ -112,24 +112,25 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            color: #444;
+            color: #666;
             font-size: 12px;
             position: relative;
-            touch-action: none;
+            touch-action: none; /* 중요 */
         }
         
         /* 터치 피드백 (손가락 위치 표시) */
         #touch-feedback {
             position: absolute;
-            width: 40px; height: 40px;
-            border: 2px solid rgba(0, 255, 255, 0.5);
+            width: 60px; height: 60px;
+            border: 2px solid rgba(0, 255, 255, 0.6);
+            background: rgba(0, 255, 255, 0.1);
             border-radius: 50%;
             transform: translate(-50%, -50%);
             display: none;
             pointer-events: none;
         }
 
-        /* 오버레이 (시작/종료/설정) */
+        /* 오버레이 */
         .overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -199,8 +200,9 @@
             border-bottom: 1px solid #333;
             font-size: 13px;
             text-align: left;
+            line-height: 1.4;
         }
-        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; }
+        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; width: 18px; height: 18px; }
 
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
@@ -225,7 +227,7 @@
             <h1 style="color:#00ff00">모든 문제 완료</h1>
             <p>선택한 문제를 모두 풀었습니다.</p>
             <div style="display:flex; flex-direction:column; width:100%; align-items:center;">
-                <button class="btn-start" onclick="app.restartGame()">다시 시작 (문제 섞기)</button>
+                <button class="btn-start" onclick="app.restartGame()">다시 시작 (랜덤 재출제)</button>
                 <button class="btn-start btn-sub" onclick="location.reload()">종료 (처음으로)</button>
             </div>
         </div>
@@ -242,14 +244,14 @@
         </div>
 
         <div id="touchpad-area">
-            <div style="pointer-events: none;">TOUCH AREA (DRAG TO MOVE)</div>
+            <div style="pointer-events: none;">TOUCHPAD AREA (DRAG TO MOVE)</div>
             <div id="touch-feedback"></div>
         </div>
     </div>
 
     <!-- 시작 설정 -->
     <div id="start-screen" class="overlay">
-        <h2 style="color:#00ff00; margin: 20px 0;">Focus Trainer Final</h2>
+        <h2 style="color:#00ff00; margin: 20px 0;">Focus Trainer v6.0</h2>
         
         <div class="settings-box">
             <!-- 난이도 -->
@@ -299,7 +301,7 @@
 
 <script>
 /* ------------------------------------------------------------------
-   1. 데이터 (문제 DB) - 파일 내용을 기반으로 작성됨
+   1. 데이터 (문제 DB)
 ------------------------------------------------------------------ */
 // 구술 (6, 12번 제외)
 const QUESTIONS_ORAL = [
@@ -363,6 +365,7 @@ const QUESTIONS_PREV = [
 
 /* ------------------------------------------------------------------
    2. 터치패드 컨트롤러 (TouchPad)
+   - 하단 영역 전체를 사용하여, 터치한 지점을 중심으로 움직임 제어
 ------------------------------------------------------------------ */
 class TouchPad {
     constructor(areaId, feedbackId, onMove) {
@@ -379,6 +382,8 @@ class TouchPad {
         this.area.addEventListener('touchstart', e => this.start(e), {passive: false});
         this.area.addEventListener('touchmove', e => this.move(e), {passive: false});
         this.area.addEventListener('touchend', e => this.end(e));
+        
+        // PC 마우스 지원
         this.area.addEventListener('mousedown', e => this.start(e));
         document.addEventListener('mousemove', e => this.move(e));
         document.addEventListener('mouseup', e => this.end(e));
@@ -397,6 +402,8 @@ class TouchPad {
             clientX = e.clientX;
             clientY = e.clientY;
         }
+        
+        // 터치한 곳을 기준점(0,0)으로 설정
         this.origin = { x: clientX, y: clientY };
         
         this.feedback.style.display = 'block';
@@ -429,15 +436,18 @@ class TouchPad {
         const dx = clientX - this.origin.x;
         const dy = clientY - this.origin.y;
         
+        // 벡터 정규화 (거리 비율)
         let nx = Math.max(-1, Math.min(1, dx / this.maxDist));
         let ny = Math.max(-1, Math.min(1, dy / this.maxDist));
         
+        // 피드백 UI 이동
         const visualDist = Math.min(Math.sqrt(dx*dx + dy*dy), this.maxDist);
         const angle = Math.atan2(dy, dx);
         const vx = Math.cos(angle) * visualDist;
         const vy = Math.sin(angle) * visualDist;
         
         this.feedback.style.transform = `translate(calc(-50% + ${vx}px), calc(-50% + ${vy}px))`;
+        
         this.onMove(nx, ny);
     }
 
@@ -521,6 +531,7 @@ class TrackerGame {
     update() {
         if (!this.active) return;
 
+        // 플레이어 이동 (관성 적용)
         this.player.vx += (this.player.targetVx - this.player.vx) * 0.15;
         this.player.vy += (this.player.targetVy - this.player.vy) * 0.15;
         this.player.x += this.player.vx;
@@ -662,7 +673,7 @@ class QuizManager {
         this.timerRef = null;
         this.nextTimer = null;
         this.useVoice = false;
-        this.useTTS = false; // TTS 옵션 추가
+        this.useTTS = false;
         this.recognition = null;
         this.initVoice();
     }
@@ -715,7 +726,7 @@ class QuizManager {
         if (this.recognition) try{this.recognition.stop()}catch(e){}
         clearTimeout(this.nextTimer);
         cancelAnimationFrame(this.timerRef);
-        window.speechSynthesis.cancel(); // TTS 중단
+        window.speechSynthesis.cancel(); 
     }
 
     scheduleNext() {
@@ -742,15 +753,13 @@ class QuizManager {
         const rawQ = this.remaining.pop();
         this.currentQ = rawQ;
         
-        // 화면에 보여줄 텍스트 (번호 제거)
-        // 정규식: 시작 부분의 "숫자." 또는 "숫자-숫자." 패턴 제거
+        // TTS 및 게임 내 표시용: 번호 제거 (정규식: 숫자. 또는 숫자-숫자.)
         const displayText = rawQ.replace(/^[0-9]+(-[0-9]+)?\.\s*/, "");
 
         this.state = 'question';
         document.getElementById('q-type').innerText = "QUESTION";
         document.getElementById('q-text').innerText = displayText;
         
-        // TTS 읽기
         if (this.useTTS) {
             this.speak(displayText);
         }
@@ -767,15 +776,15 @@ class QuizManager {
     
     speak(text) {
         if (!window.speechSynthesis) return;
-        window.speechSynthesis.cancel(); // 이전 음성 중단
+        window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ko-KR';
-        utterance.rate = 1.0; // 속도 조절 가능
+        utterance.rate = 1.0; 
         window.speechSynthesis.speak(utterance);
     }
 
     startAnswering() {
-        window.speechSynthesis.cancel(); // 답변 시작하면 TTS 중단
+        window.speechSynthesis.cancel(); 
         this.state = 'answering';
         this.timerStart = performance.now();
         document.getElementById('q-type').innerText = "RECORDING...";
@@ -843,7 +852,7 @@ const ui = {
     },
     renderList: function(id, list) {
         const container = document.getElementById(id);
-        // 기본 체크 해제 상태로 렌더링
+        // 기본 체크 해제 상태
         container.innerHTML = list.map(q => `
             <label class="problem-item">
                 <input type="checkbox" value="${q}">
@@ -924,7 +933,7 @@ const app = {
     }
 };
 
-// 초기화 실행
+// 초기화
 app.init();
 
 new TouchPad('touchpad-area', 'touch-feedback', (x, y) => {
@@ -937,7 +946,7 @@ document.getElementById('quiz-area').addEventListener('touchstart', (e) => {
     quiz.handleTouch();
 });
 
-// 앱 시작 버튼 연결
+// 버튼 연결
 document.querySelector('.btn-start').onclick = () => app.start();
 
 </script>
