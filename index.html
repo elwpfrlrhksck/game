@@ -75,7 +75,7 @@
             border: 1px solid #444;
         }
 
-        /* 퀴즈 영역 */
+        /* 퀴즈 영역 (상단 고정) */
         #quiz-area {
             width: 100%;
             height: 40%;
@@ -118,6 +118,7 @@
             touch-action: none;
         }
         
+        /* 터치 피드백 (손가락 위치 표시) */
         #touch-feedback {
             position: absolute;
             width: 40px; height: 40px;
@@ -128,7 +129,7 @@
             pointer-events: none;
         }
 
-        /* 오버레이 */
+        /* 오버레이 (시작/종료/설정) */
         .overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -225,7 +226,7 @@
             <p>선택한 문제를 모두 풀었습니다.</p>
             <div style="display:flex; flex-direction:column; width:100%; align-items:center;">
                 <button class="btn-start" onclick="app.restartGame()">다시 시작 (문제 섞기)</button>
-                <button class="btn-start btn-sub" onclick="location.reload()">종료 (첫 화면)</button>
+                <button class="btn-start btn-sub" onclick="location.reload()">종료 (처음으로)</button>
             </div>
         </div>
     </div>
@@ -298,27 +299,24 @@
 
 <script>
 /* ------------------------------------------------------------------
-   1. 데이터 (문제 DB)
-   - 번호 포함 (선택 UI용), 게임 중에는 정규식으로 제거
-   - 구술: 6, 12 제외
-   - 기출: 7 제외
+   1. 데이터 (문제 DB) - 파일 내용을 기반으로 작성됨
 ------------------------------------------------------------------ */
+// 구술 (6, 12번 제외)
 const QUESTIONS_ORAL = [
     "1. ARL 설치차량의 접지 복귀 방법",
     "2. 7400호대 디젤전기기관차에 설치된 전동기의 종류",
     "3. 지적확인 환호응답 환호용어(기외정차 경고등 경고 시 등)",
     "4. ATP 운전모드의 종류",
     "5. ATP 운행 시 특수운전기능 활성화 시 이동거리 제한과 활성화 시간 제한?",
-    // 6 제외
     "7. 지도표와 지도권에 대한 설명",
     "8. 지령식의 정의와 통보 받고 기관사의 조치(운전취급규정 제138조)",
     "9. 비장착모드로 운행하여야 하는 경우",
     "10. 저유압 기관정지장치가 동작하는 경우",
     "11. 디젤전기기관차 저압계통의 종류",
-    // 12 제외
     "13. 기관전부에 있는 치차의 종류와 부속장치 구동치차와 반대방향으로 회전하는 치차의 종류"
 ];
 
+// 기출 (7번 제외)
 const QUESTIONS_PREV = [
     "1. 공기제동시험을 시행하는 경우는 언제인가?",
     "2. 제동감도시험을 생략할 수 있는 경우는 언제인가?",
@@ -327,7 +325,6 @@ const QUESTIONS_PREV = [
     "5. 복선 자동폐색구간에서 통신식 시행 경우 (5가지)",
     "5-1. 통신식 시행시의 운전법",
     "6. 자동폐색식과 지도통신식 병용시의 운전취급법",
-    // 7 제외
     "8. 구원열차 요구시의 취급법(구원을 요구한 고장열차)",
     "9. 구원열차 운전법(구원하러 가는 열차)",
     "10. 전령법 시행 시 운전취급법은?",
@@ -939,6 +936,9 @@ document.getElementById('quiz-area').addEventListener('touchstart', (e) => {
     e.preventDefault();
     quiz.handleTouch();
 });
+
+// 앱 시작 버튼 연결
+document.querySelector('.btn-start').onclick = () => app.start();
 
 </script>
 </body>
