@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Auto Start</title>
+    <title>Focus Trainer: Enhanced Voice</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -699,7 +699,7 @@ class QuizManager {
             this.recognition.continuous = true;
             this.recognition.interimResults = false;
             this.recognition.onresult = (e) => {
-                const txt = e.results[e.results.length-1][0].transcript.replace(/\s/g, '');
+                const txt = e.results[e.results.length-1][0].transcript;
                 this.processVoice(txt);
             };
             this.recognition.onend = () => {
@@ -707,13 +707,72 @@ class QuizManager {
             };
         }
     }
+    
+    // Levenshtein Distance 계산 함수
+    getLevenshteinDistance(a, b) {
+        if (a.length === 0) return b.length;
+        if (b.length === 0) return a.length;
+        const matrix = [];
+        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
+        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
+        for (let i = 1; i <= b.length; i++) {
+            for (let j = 1; j <= a.length; j++) {
+                if (b.charAt(i - 1) === a.charAt(j - 1)) {
+                    matrix[i][j] = matrix[i - 1][j - 1];
+                } else {
+                    matrix[i][j] = Math.min(
+                        matrix[i - 1][j - 1] + 1,
+                        Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
+                    );
+                }
+            }
+        }
+        return matrix[b.length][a.length];
+    }
 
     processVoice(txt) {
         if (!this.active) return;
         
+        // 정규화 (공백 및 특수문자 제거)
+        const cleanText = txt.replace(/[.,?!]/g, "").replace(/\s/g, "");
+
         if (this.mode === 'game' || (this.mode === 'practice' && this.practiceType === 'continuous')) {
             if (this.state === 'answering') {
-                if (txt.includes('이상') || txt.includes('끝')) {
+                // 검사할 키워드 목록
+                const targets = ["이상", "이상입니다", "끝", "끝입니다", "종료"];
+                let matched = false;
+
+                for (let target of targets) {
+                    // 1. 정확히 일치하는 경우
+                    if (cleanText.includes(target)) {
+                        matched = true; 
+                        break;
+                    }
+
+                    // 2. Levenshtein Distance 체크
+                    // "끝" 같은 1글자는 정확도 위해 제외 (2글자 이상만 퍼지 매칭)
+                    if (target.length >= 2) {
+                        const dist = this.getLevenshteinDistance(cleanText, target);
+                        // 5글자 이상("이상입니다")은 2개까지, 그 외는 1개까지 오차 허용
+                        const threshold = (target.length >= 5) ? 2 : 1;
+                        
+                        // 입력된 텍스트가 키워드보다 훨씬 길 수 있으므로 (문장 끝에 포함된 경우)
+                        // 뒷부분만 잘라서 비교하거나, 전체 거리 체크는 짧은 발화일 때 유효
+                        if (cleanText.length <= target.length + 2 && dist <= threshold) {
+                            matched = true;
+                            break;
+                        }
+                        
+                        // 문장 끝부분 확인 ("~~~ 이산입니다" 같은 경우)
+                        const suffix = cleanText.slice(-target.length);
+                        if (this.getLevenshteinDistance(suffix, target) <= threshold) {
+                             matched = true;
+                             break;
+                        }
+                    }
+                }
+
+                if (matched) {
                     this.finishAnswering();
                 }
             }
@@ -812,11 +871,10 @@ class QuizManager {
         const micEl = document.getElementById('mic-status');
 
         if (this.mode === 'practice' && this.practiceType === 'timer') {
-             if (this.useTTS) this.speak(displayText); // 타이머 모드여도 읽어주긴 함
+             if (this.useTTS) this.speak(displayText); 
              micEl.innerText = `⏳ ${this.practiceInterval / 60}분 마다 변경 중`;
              this.state = 'viewing'; 
         } else {
-            // "예" 확인 로직 제거 -> 바로 시작
             if (this.useTTS) {
                 micEl.innerText = "🔊 문제 읽는 중...";
                 this.speak(displayText, () => {
@@ -849,10 +907,6 @@ class QuizManager {
 
     startAnswering() {
         if (this.mode === 'practice' && this.practiceType === 'timer') return;
-
-        // TTS가 혹시라도 돌고 있으면 중단 (speak 콜백 외 호출 방지용)
-        // window.speechSynthesis.cancel(); 
-        // -> TTS 완료 후 호출되므로 주석 처리 (끊김 방지)
 
         this.state = 'answering';
         this.timerStart = performance.now();
@@ -898,7 +952,6 @@ class QuizManager {
 
     handleTouch() {
         if (this.mode === 'practice' && this.practiceType === 'timer') return;
-        // question 상태에서는 터치 무시 (TTS 듣는 중)
         if (this.state === 'answering') this.finishAnswering();
     }
 }
