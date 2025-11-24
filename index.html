@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: 120Hz Fix</title>
+    <title>Focus Trainer: Auto Start</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -515,18 +515,18 @@ class TrackerGame {
 
         // 속도 및 크기 설정
         if (diff === 'easy') {
-            this.zoneSpeed = 1.0;  // 요청하신 속도
+            this.zoneSpeed = 1.0; 
             this.zone.width = 120; this.zone.height = 120;
             this.zone.radius = 0;
             this.nextChangeTime = Infinity; // 방향 전환 없음 (직진만)
         } else if (diff === 'normal') {
-            this.zoneSpeed = 2.0;  // 요청하신 속도
+            this.zoneSpeed = 2.0; 
             this.zone.width = 100; this.zone.height = 100;
             this.zone.radius = 15; 
             // 3초 이상 (ms 기준)
             this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
         } else {
-            this.zoneSpeed = 3.0;  // 요청하신 속도
+            this.zoneSpeed = 3.0; 
             this.zone.width = 80; this.zone.height = 80;
             this.zone.radius = 15;
             this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
@@ -543,12 +543,10 @@ class TrackerGame {
         
         // 타이머 재설정 (실제 시간 기반)
         if (this.difficulty === 'normal') {
-            // 3초 ~ 5초 사이
             this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
         } else if (this.difficulty === 'hard') {
             this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
         }
-        // Easy는 타이머 안 씀
     }
 
     update() {
@@ -616,7 +614,7 @@ class TrackerGame {
             this.health = Math.min(100, this.health + 0.15); 
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.15; // 체력 감소 속도 절반
+            this.health -= 0.15; 
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
@@ -714,11 +712,7 @@ class QuizManager {
         if (!this.active) return;
         
         if (this.mode === 'game' || (this.mode === 'practice' && this.practiceType === 'continuous')) {
-            if (this.state === 'question') {
-                if (txt.startsWith('예') || txt.startsWith('네') || txt.includes('시작')) {
-                    this.startAnswering();
-                }
-            } else if (this.state === 'answering') {
+            if (this.state === 'answering') {
                 if (txt.includes('이상') || txt.includes('끝')) {
                     this.finishAnswering();
                 }
@@ -815,45 +809,64 @@ class QuizManager {
         document.getElementById('q-type').innerText = "QUESTION";
         document.getElementById('q-text').innerText = displayText;
         
-        if (this.useTTS) this.speak(displayText);
-
         const micEl = document.getElementById('mic-status');
-        
+
         if (this.mode === 'practice' && this.practiceType === 'timer') {
+             if (this.useTTS) this.speak(displayText); // 타이머 모드여도 읽어주긴 함
              micEl.innerText = `⏳ ${this.practiceInterval / 60}분 마다 변경 중`;
              this.state = 'viewing'; 
         } else {
-            if (this.useVoice) {
-                micEl.innerText = "🎤 '예'라고 답하면 타이머 시작";
-                micEl.className = "listening";
+            // "예" 확인 로직 제거 -> 바로 시작
+            if (this.useTTS) {
+                micEl.innerText = "🔊 문제 읽는 중...";
+                this.speak(displayText, () => {
+                    this.startAnswering();
+                });
             } else {
-                micEl.innerText = "터치하여 답변 시작";
-                micEl.className = "";
+                this.startAnswering();
             }
         }
     }
     
-    speak(text) {
-        if (!window.speechSynthesis) return;
+    speak(text, callback) {
+        if (!window.speechSynthesis) {
+            if(callback) callback();
+            return;
+        }
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'ko-KR';
         utterance.rate = 1.0; 
+        
+        if (callback) {
+            utterance.onend = () => {
+                if(this.active) callback();
+            };
+        }
+        
         window.speechSynthesis.speak(utterance);
     }
 
     startAnswering() {
         if (this.mode === 'practice' && this.practiceType === 'timer') return;
 
-        window.speechSynthesis.cancel(); 
+        // TTS가 혹시라도 돌고 있으면 중단 (speak 콜백 외 호출 방지용)
+        // window.speechSynthesis.cancel(); 
+        // -> TTS 완료 후 호출되므로 주석 처리 (끊김 방지)
+
         this.state = 'answering';
         this.timerStart = performance.now();
         document.getElementById('q-type').innerText = "RECORDING...";
         document.getElementById('q-timer').style.display = 'block';
         
         const micEl = document.getElementById('mic-status');
-        if (this.useVoice) micEl.innerText = "🗣️ 답변 후 '이상입니다' 발언";
-        else micEl.innerText = "답변 후 터치하여 완료";
+        if (this.useVoice) {
+            micEl.innerText = "🗣️ 답변 후 '이상입니다' 발언";
+            micEl.className = "listening";
+        } else {
+            micEl.innerText = "답변 후 터치하여 완료";
+            micEl.className = "";
+        }
         
         this.updateTimer();
     }
@@ -885,8 +898,8 @@ class QuizManager {
 
     handleTouch() {
         if (this.mode === 'practice' && this.practiceType === 'timer') return;
-        if (this.state === 'question') this.startAnswering();
-        else if (this.state === 'answering') this.finishAnswering();
+        // question 상태에서는 터치 무시 (TTS 듣는 중)
+        if (this.state === 'answering') this.finishAnswering();
     }
 }
 
@@ -942,7 +955,6 @@ const ui = {
             return Array.from(inputs).map(input => input.value);
         }
     },
-    // 저장된 문제 불러오기
     checkAndLoadHistory: function() {
         const saved = localStorage.getItem('focusTrainer_lastSelection');
         if (!saved) return;
@@ -970,7 +982,7 @@ const quiz = new QuizManager();
 
 const app = {
     mode: 'game', 
-    lastFrameTime: 0, // FPS 고정을 위한 시간 추적
+    lastFrameTime: 0, 
 
     init: function() {
         ui.renderList('list-prev', QUESTIONS_PREV);
@@ -1012,7 +1024,6 @@ const app = {
 
         if (this.mode === 'practice') {
             practiceType = document.querySelector('input[name="p-mode"]:checked').value;
-            // 분 단위를 초로 변환
             practiceInterval = (parseInt(document.getElementById('p-interval').value) || 1) * 60;
         }
 
@@ -1022,7 +1033,6 @@ const app = {
         const bottomScreen = document.getElementById('bottom-screen');
 
         if (this.mode === 'game') {
-            // 모바일 화면 비율 반영: Top(2), Bottom(1)
             topScreen.style.display = 'flex';
             topScreen.style.flex = '2';
             bottomScreen.style.flex = '1';
@@ -1043,17 +1053,12 @@ const app = {
             useTTS: useTTS
         });
     },
-    // FPS Throttling 적용 루프
     loop: function(timestamp) {
         if (!tracker.active) return;
-        
-        // 첫 프레임 초기화
         if (!this.lastFrameTime) this.lastFrameTime = timestamp;
 
-        // 경과 시간 계산
         const elapsed = timestamp - this.lastFrameTime;
 
-        // 약 60FPS (16.6ms) 간격으로만 업데이트
         if (elapsed > 1000 / 60) {
             tracker.update();
             tracker.render();
@@ -1077,7 +1082,6 @@ const app = {
         
         if (this.mode === 'game') {
             tracker.start(tracker.difficulty);
-            // 재시작 시 루프 다시 호출 필요 없음 (이미 돌고 있음 or 활성화됨)
             if(!tracker.active) {
                  tracker.active = true; 
                  requestAnimationFrame((t) => this.loop(t));
