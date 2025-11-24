@@ -515,15 +515,15 @@ class TrackerGame {
         // 기존: Easy(160) Normal(130) Hard(100)
         // 변경: Easy(120) Normal(100) Hard(80)
         if (diff === 'easy') {
-            this.zoneSpeed = 2.5; 
+            this.zoneSpeed = 1.0; 
             this.zone.width = 120; this.zone.height = 120;
             this.zone.radius = 0;
         } else if (diff === 'normal') {
-            this.zoneSpeed = 4.5; 
+            this.zoneSpeed = 2.0; 
             this.zone.width = 100; this.zone.height = 100;
             this.zone.radius = 15; 
         } else {
-            this.zoneSpeed = 7.0; 
+            this.zoneSpeed = 3.0; 
             this.zone.width = 80; this.zone.height = 80;
             this.zone.radius = 15;
         }
@@ -1080,3 +1080,4 @@ quizArea.addEventListener('touchstart', (e) => {
 </script>
 </body>
 </html>
+
