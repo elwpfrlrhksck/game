@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Real Random</title>
+    <title>Focus Trainer: Mobile Optimized</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -29,8 +29,9 @@
         }
 
         /* === 상단 화면 (게임) === */
+        /* 화면 비율 수정: flex 2 (약 66%) */
         #top-screen {
-            flex: 1;
+            flex: 2; 
             position: relative;
             background: #000;
             border-bottom: 2px solid #333;
@@ -67,7 +68,7 @@
         /* 게임 모드 나가기 버튼 */
         #btn-game-exit {
             position: absolute;
-            top: 25px; /* 체력바 아래 */
+            top: 25px; 
             right: 10px;
             background: rgba(68, 68, 68, 0.8);
             color: white;
@@ -80,6 +81,7 @@
         }
 
         /* === 하단 화면 (퀴즈) === */
+        /* 화면 비율 수정: flex 1 (약 33%) */
         #bottom-screen {
             flex: 1;
             position: relative;
@@ -87,7 +89,7 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 10px;
+            padding: 5px; /* 패딩 축소 */
             margin: 5px;
             border-radius: 8px;
             border: 1px solid #444;
@@ -101,7 +103,7 @@
             background: #222;
             border: 1px solid #555;
             border-radius: 8px;
-            padding: 20px;
+            padding: 10px; /* 패딩 축소 */
             box-sizing: border-box;
             text-align: center;
             display: flex;
@@ -115,25 +117,26 @@
         /* 연습모드 나가기 버튼 */
         #btn-practice-exit {
             position: absolute;
-            top: 10px;
-            right: 10px;
+            top: 5px;
+            right: 5px;
             background: #444;
             color: white;
             border: 1px solid #666;
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 11px;
             cursor: pointer;
             z-index: 50;
-            display: none; /* 연습모드에서만 표시 */
+            display: none; 
         }
 
-        .q-type { color: #aaa; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
-        .q-text { color: white; font-size: 22px; font-weight: bold; line-height: 1.4; word-break: keep-all; flex: 1; display: flex; align-items: center; justify-content: center; }
-        .q-answer { color: #00ff00; font-size: 18px; margin-top: 5px; font-weight: bold; display: none; }
-        .q-timer { color: #00ffff; font-size: 24px; margin-top: 10px; font-family: monospace; display: none;}
+        .q-type { color: #aaa; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
+        /* 폰트 사이즈 약간 축소 */
+        .q-text { color: white; font-size: 18px; font-weight: bold; line-height: 1.3; word-break: keep-all; flex: 1; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
+        .q-answer { color: #00ff00; font-size: 16px; margin-top: 5px; font-weight: bold; display: none; }
+        .q-timer { color: #00ffff; font-size: 20px; margin-top: 5px; font-family: monospace; display: none;}
         
-        #mic-status { font-size: 12px; color: #666; margin-top: 10px; width: 100%; }
+        #mic-status { font-size: 11px; color: #666; margin-top: 5px; width: 100%; }
         .listening { color: #ff5555 !important; animation: pulse 1s infinite; }
 
         /* 오버레이 */
@@ -151,8 +154,8 @@
         #game-over, #game-clear, #start-screen, #main-menu { z-index: 200; }
 
         .btn-start {
-            padding: 15px 40px;
-            font-size: 20px;
+            padding: 15px 30px;
+            font-size: 18px;
             background: #00ff00;
             color: black;
             border: none;
@@ -166,40 +169,40 @@
         .btn-mode {
             background: #00ffff; 
             color: black; 
-            height: 90px; 
-            font-size: 24px;
+            height: 80px; 
+            font-size: 20px;
             line-height: 1.2;
         }
         .mode-desc {
-            font-size: 14px; 
+            font-size: 12px; 
             font-weight: normal; 
             color: #444;
             display: block;
             margin-top: 5px;
         }
         .btn-retry { background: #ff3333; color: white; }
-        .btn-sub { background: #444; color: white; font-size: 16px; }
+        .btn-sub { background: #444; color: white; font-size: 14px; }
 
         /* 설정 UI */
         .settings-box {
             width: 90%;
             max-width: 500px;
             background: #222;
-            padding: 20px;
+            padding: 15px;
             border-radius: 10px;
             margin-bottom: 20px;
             max-height: 70vh;
             overflow-y: auto;
         }
         
-        .section-title { color: #00ffff; font-size: 16px; margin: 15px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
+        .section-title { color: #00ffff; font-size: 14px; margin: 15px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
         .radio-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
         .radio-horizontal { flex-direction: row; justify-content: space-between; }
         
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ddd; font-size: 14px; }
+        label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ddd; font-size: 13px; }
         
-        .desc-text { font-size: 12px; color: #888; margin-left: 25px; margin-bottom: 5px; display: block;}
+        .desc-text { font-size: 11px; color: #888; margin-left: 25px; margin-bottom: 5px; display: block;}
 
         /* 문제 선택기 */
         #problem-selector {
@@ -207,11 +210,11 @@
             width: 100%;
         }
         .tab-container { display: flex; border-bottom: 1px solid #444; margin-bottom: 10px; }
-        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #333; color: #888; }
+        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #333; color: #888; font-size: 13px;}
         .tab.active { background: #555; color: white; font-weight: bold; }
         
         .problem-list {
-            max-height: 200px;
+            max-height: 150px;
             overflow-y: auto;
             background: #111;
             padding: 5px;
@@ -222,10 +225,10 @@
             align-items: flex-start;
             padding: 8px;
             border-bottom: 1px solid #333;
-            font-size: 13px;
+            font-size: 12px;
             text-align: left;
         }
-        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; width: 18px; height: 18px; }
+        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; }
 
         .mode-specific { display: none; }
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
@@ -268,7 +271,7 @@
     </div>
 
     <div id="main-menu" class="overlay">
-        <h1 style="color:#00ff00; margin-bottom: 30px;">Focus Trainer</h1>
+        <h1 style="color:#00ff00; margin-bottom: 20px;">Focus Trainer</h1>
         <button class="btn-start btn-mode" onclick="app.selectMode('game')">
             🎮 게임 모드
             <span class="mode-desc">추적 게임 + 구술 훈련</span>
@@ -280,7 +283,7 @@
     </div>
 
     <div id="start-screen" class="overlay" style="display:none;">
-        <h2 style="color:#00ff00; margin: 20px 0;" id="setting-title">설정</h2>
+        <h2 style="color:#00ff00; margin: 15px 0;" id="setting-title">설정</h2>
         
         <div class="settings-box">
             
@@ -415,15 +418,16 @@ const QUESTIONS_PREV = [
 ];
 
 /* ------------------------------------------------------------------
-   2. 추적 게임 (Tracker)
+   2. 추적 게임 (Tracker) - 벡터 이동 및 충돌 방식 변경
 ------------------------------------------------------------------ */
 class TrackerGame {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         
-        this.player = { x: 0, y: 0, radius: 15 };
-        this.zone = { x: 0, y: 0, width: 100, height: 100, radius: 0, targetX: 0, targetY: 0 };
+        // 플레이어 크기 줄임 (15 -> 10)
+        this.player = { x: 0, y: 0, radius: 10 };
+        this.zone = { x: 0, y: 0, width: 100, height: 100, radius: 0, vx: 0, vy: 0 };
         
         this.difficulty = 'normal'; 
         this.zoneSpeed = 0; 
@@ -465,7 +469,7 @@ class TrackerGame {
         const pos = this.getPos(e);
         const dist = Math.sqrt((pos.x - this.player.x)**2 + (pos.y - this.player.y)**2);
         
-        if (dist < this.player.radius * 2.5) {
+        if (dist < this.player.radius * 3.0) { // 터치 범위는 약간 여유 있게
             this.isDragging = true;
             this.dragOffset.x = pos.x - this.player.x;
             this.dragOffset.y = pos.y - this.player.y;
@@ -507,19 +511,33 @@ class TrackerGame {
         
         this.resize(); 
 
+        // 박스 크기 전체적으로 축소 및 속도 설정
+        // 기존: Easy(160) Normal(130) Hard(100)
+        // 변경: Easy(120) Normal(100) Hard(80)
         if (diff === 'easy') {
             this.zoneSpeed = 2.5; 
-            this.zone.width = 160; this.zone.height = 160;
+            this.zone.width = 120; this.zone.height = 120;
             this.zone.radius = 0;
         } else if (diff === 'normal') {
             this.zoneSpeed = 4.5; 
-            this.zone.width = 130; this.zone.height = 130;
+            this.zone.width = 100; this.zone.height = 100;
             this.zone.radius = 15; 
         } else {
             this.zoneSpeed = 7.0; 
-            this.zone.width = 100; this.zone.height = 100;
+            this.zone.width = 80; this.zone.height = 80;
             this.zone.radius = 15;
         }
+
+        // 초기 이동 방향 설정
+        this.setRandomVelocity();
+    }
+
+    setRandomVelocity() {
+        const angle = Math.random() * Math.PI * 2;
+        this.zone.vx = Math.cos(angle) * this.zoneSpeed;
+        this.zone.vy = Math.sin(angle) * this.zoneSpeed;
+        // 최소 2초(약 120프레임) 유지, 최대 4초
+        this.moveTimer = 120 + Math.random() * 120;
     }
 
     update() {
@@ -529,29 +547,46 @@ class TrackerGame {
     }
 
     updateZoneAI() {
-        const pad = 100;
-        const dx = this.zone.targetX - this.zone.x;
-        const dy = this.zone.targetY - this.zone.y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
+        // 1. 이동
+        this.zone.x += this.zone.vx;
+        this.zone.y += this.zone.vy;
 
-        if (dist < 10 || this.moveTimer <= 0) {
-            this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
-            this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
-            this.moveTimer = 80 + Math.random() * 80; 
+        const halfW = this.zone.width / 2;
+        const halfH = this.zone.height / 2;
+
+        // 2. 벽 튕기기 (화면 밖으로 나가지 않게)
+        let hitWall = false;
+        if (this.zone.x - halfW < 0) {
+            this.zone.x = halfW;
+            this.zone.vx *= -1;
+            hitWall = true;
+        } else if (this.zone.x + halfW > this.canvas.width) {
+            this.zone.x = this.canvas.width - halfW;
+            this.zone.vx *= -1;
+            hitWall = true;
         }
-        this.moveTimer--;
 
-        const angle = Math.atan2(dy, dx);
-        this.zone.x += Math.cos(angle) * this.zoneSpeed;
-        this.zone.y += Math.sin(angle) * this.zoneSpeed;
+        if (this.zone.y - halfH < 0) {
+            this.zone.y = halfH;
+            this.zone.vy *= -1;
+            hitWall = true;
+        } else if (this.zone.y + halfH > this.canvas.height) {
+            this.zone.y = this.canvas.height - halfH;
+            this.zone.vy *= -1;
+            hitWall = true;
+        }
+
+        // 3. 시간 경과에 따른 방향 전환 (벽에 안 부딪혀도 주기적으로 변경)
+        this.moveTimer--;
+        if (this.moveTimer <= 0) {
+            this.setRandomVelocity();
+        }
         
+        // Hard 모드 Morphing
         if (this.difficulty === 'hard') {
             const time = Date.now() / 500;
-            this.zone.radius = 10 + ((Math.sin(time) + 1) * 20);
+            this.zone.radius = 10 + ((Math.sin(time) + 1) * 15);
         }
-
-        this.zone.x = Math.max(pad, Math.min(this.canvas.width - pad, this.zone.x));
-        this.zone.y = Math.max(pad, Math.min(this.canvas.height - pad, this.zone.y));
     }
 
     checkCollision() {
@@ -569,7 +604,7 @@ class TrackerGame {
             this.health = Math.min(100, this.health + 0.15); 
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.3; // 체력 감소 속도 2배 상향 (0.15 -> 0.3)
+            this.health -= 0.3; 
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
@@ -683,7 +718,6 @@ class QuizManager {
         this.currentSet = [...list];
     }
     
-    // 완벽한 랜덤 셔플을 위한 Fisher-Yates 알고리즘
     shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -700,12 +734,10 @@ class QuizManager {
         this.useVoice = config.useVoice;
         this.useTTS = config.useTTS;
 
-        // Fisher-Yates Shuffle 적용
         this.remaining = this.shuffleArray([...this.currentSet]);
         
         if (this.useVoice && this.recognition) try{this.recognition.start()}catch(e){}
         
-        // 버튼 표시 제어
         document.getElementById('btn-practice-exit').style.display = (this.mode === 'practice') ? 'block' : 'none';
 
         if (this.mode === 'practice' && this.practiceType === 'timer') {
@@ -977,8 +1009,9 @@ const app = {
         const bottomScreen = document.getElementById('bottom-screen');
 
         if (this.mode === 'game') {
+            // 모바일 화면 비율 반영: Top(2), Bottom(1)
             topScreen.style.display = 'flex';
-            topScreen.style.flex = '1';
+            topScreen.style.flex = '2';
             bottomScreen.style.flex = '1';
             const diff = document.querySelector('input[name="diff"]:checked').value;
             tracker.start(diff);
