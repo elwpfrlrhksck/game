@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Balanced</title>
+    <title>Focus Trainer: Final Fix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -151,8 +151,16 @@
         .btn-mode {
             background: #00ffff; 
             color: black; 
-            height: 80px; 
+            height: 90px; 
             font-size: 24px;
+            line-height: 1.2;
+        }
+        .mode-desc {
+            font-size: 14px; 
+            font-weight: normal; 
+            color: #444;
+            display: block;
+            margin-top: 5px;
         }
         .btn-retry { background: #ff3333; color: white; }
         .btn-sub { background: #444; color: white; font-size: 16px; }
@@ -245,8 +253,14 @@
 
     <div id="main-menu" class="overlay">
         <h1 style="color:#00ff00; margin-bottom: 30px;">Focus Trainer</h1>
-        <button class="btn-start btn-mode" onclick="app.selectMode('game')">🎮 게임 모드</button>
-        <button class="btn-start btn-mode" style="background:#ffcc00;" onclick="app.selectMode('practice')">📚 연습 모드</button>
+        <button class="btn-start btn-mode" onclick="app.selectMode('game')">
+            🎮 게임 모드
+            <span class="mode-desc">추적 게임 + 구술 훈련</span>
+        </button>
+        <button class="btn-start btn-mode" style="background:#ffcc00;" onclick="app.selectMode('practice')">
+            📚 연습 모드
+            <span class="mode-desc">문제 풀이 집중 (게임 X)</span>
+        </button>
     </div>
 
     <div id="start-screen" class="overlay" style="display:none;">
@@ -257,7 +271,7 @@
             <div class="section-title">문제 출제 방식</div>
             <div class="radio-group radio-horizontal">
                 <label><input type="radio" name="q-mode" value="all" checked onchange="ui.toggleProblemSelector(false)"> 전체 랜덤</label>
-                <label><input type="radio" name="q-mode" value="select" onchange="ui.checkAndLoadHistory()"> 문제 선택</label>
+                <label><input type="radio" name="q-mode" value="select" onchange="ui.toggleProblemSelector(true)"> 문제 선택</label>
             </div>
             
             <div id="problem-selector">
@@ -477,7 +491,6 @@ class TrackerGame {
         
         this.resize(); 
 
-        // 속도 조정 (피드백 반영: 대폭 하향하여 인간적 속도로 맞춤)
         if (diff === 'easy') {
             this.zoneSpeed = 2.5; 
             this.zone.width = 160; this.zone.height = 160;
@@ -540,7 +553,7 @@ class TrackerGame {
             this.health = Math.min(100, this.health + 0.15); 
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.1; // 체력 감소 속도 약간 완화
+            this.health -= 0.15; // 체력 감소 속도 증가 (0.1 -> 0.15)
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
