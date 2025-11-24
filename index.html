@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Upgrade</title>
+    <title>Focus Trainer: Balanced</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -276,10 +276,11 @@
             <div id="settings-game" class="mode-specific">
                 <div class="section-title">난이도 (공 추적 속도)</div>
                 <div class="radio-group radio-horizontal">
-                    <label><input type="radio" name="diff" value="easy"> 쉬움 (0.5)</label>
-                    <label><input type="radio" name="diff" value="normal" checked> 보통 (1.0)</label>
-                    <label><input type="radio" name="diff" value="hard"> 어려움 (1.5)</label>
+                    <label><input type="radio" name="diff" value="easy"> 쉬움</label>
+                    <label><input type="radio" name="diff" value="normal" checked> 보통</label>
+                    <label><input type="radio" name="diff" value="hard"> 어려움</label>
                 </div>
+                <p class="desc-text">* 보통: 적당한 긴장감으로 따라갈 수 있는 속도</p>
             </div>
 
             <div id="settings-practice" class="mode-specific">
@@ -476,19 +477,17 @@ class TrackerGame {
         
         this.resize(); 
 
-        // 속도 조정 (베이스 스피드 대폭 상향)
-        const BASE_SPEED = 8.0; 
-
+        // 속도 조정 (피드백 반영: 대폭 하향하여 인간적 속도로 맞춤)
         if (diff === 'easy') {
-            this.zoneSpeed = BASE_SPEED * 0.5; // 4.0
+            this.zoneSpeed = 2.5; 
             this.zone.width = 160; this.zone.height = 160;
             this.zone.radius = 0;
         } else if (diff === 'normal') {
-            this.zoneSpeed = BASE_SPEED * 1.0; // 8.0
+            this.zoneSpeed = 4.5; 
             this.zone.width = 130; this.zone.height = 130;
             this.zone.radius = 15; 
         } else {
-            this.zoneSpeed = BASE_SPEED * 1.5; // 12.0
+            this.zoneSpeed = 7.0; 
             this.zone.width = 100; this.zone.height = 100;
             this.zone.radius = 15;
         }
@@ -509,7 +508,7 @@ class TrackerGame {
         if (dist < 10 || this.moveTimer <= 0) {
             this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
             this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
-            this.moveTimer = 80 + Math.random() * 80; // 방향 전환 빈도 증가
+            this.moveTimer = 80 + Math.random() * 80; 
         }
         this.moveTimer--;
 
@@ -541,7 +540,7 @@ class TrackerGame {
             this.health = Math.min(100, this.health + 0.15); 
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.15; // 데미지 증가
+            this.health -= 0.1; // 체력 감소 속도 약간 완화
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
@@ -737,7 +736,7 @@ class QuizManager {
         const micEl = document.getElementById('mic-status');
         
         if (this.mode === 'practice' && this.practiceType === 'timer') {
-             micEl.innerText = `⏳ ${this.practiceInterval}초 후 다음 문제`;
+             micEl.innerText = `⏳ ${this.practiceInterval / 60}분 마다 변경 중`;
              this.state = 'viewing'; 
         } else {
             if (this.useVoice) {
@@ -864,7 +863,6 @@ const ui = {
         const saved = localStorage.getItem('focusTrainer_lastSelection');
         if (!saved) return;
         
-        // 이미 로드된 상태인지 체크 (한 번 물어봤으면 패스하거나 로직 보완)
         if (this.historyLoaded) return;
 
         if (confirm("이전에 선택했던 문제 목록을 불러오시겠습니까?")) {
@@ -875,7 +873,7 @@ const ui = {
             });
             this.historyLoaded = true;
         } else {
-            this.historyLoaded = true; // 거절해도 다시 묻지 않음
+            this.historyLoaded = true; 
         }
     },
     saveHistory: function(list) {
@@ -898,7 +896,6 @@ const app = {
         document.getElementById('main-menu').style.display = 'none';
         document.getElementById('start-screen').style.display = 'flex';
 
-        // 팝업 재사용을 위해 플래그 초기화
         ui.historyLoaded = false;
 
         if (mode === 'game') {
@@ -918,7 +915,6 @@ const app = {
             return;
         }
         
-        // 문제 선택 모드라면 저장
         if (document.querySelector('input[name="q-mode"]:checked').value === 'select') {
             ui.saveHistory(selectedQ);
         }
@@ -999,7 +995,6 @@ app.init();
 
 const quizArea = document.getElementById('quiz-area');
 quizArea.addEventListener('mousedown', (e) => {
-    // 버튼 클릭 시 이벤트 버블링 방지
     if(e.target.id === 'btn-practice-exit') return;
     quiz.handleTouch();
 });
