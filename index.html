@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Final Mobile Fit</title>
+    <title>Focus Trainer: 120Hz Fix</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -15,7 +15,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* 모바일 주소창 대응을 위한 dvh 단위 사용 */
             height: 100vh; 
             height: 100dvh; 
             width: 100vw;
@@ -30,9 +29,9 @@
             box-sizing: border-box;
         }
 
-        /* === 상단 화면 (게임) === */
+        /* === 상단 화면 (게임) flex:2 === */
         #top-screen {
-            flex: 2; /* 2:1 비율 유지 */
+            flex: 2; 
             position: relative;
             background: #000;
             border-bottom: 2px solid #333;
@@ -81,7 +80,7 @@
             z-index: 50;
         }
 
-        /* === 하단 화면 (퀴즈) === */
+        /* === 하단 화면 (퀴즈) flex:1 === */
         #bottom-screen {
             flex: 1;
             position: relative;
@@ -313,7 +312,7 @@
                     <label><input type="radio" name="diff" value="hard"> 어려움 (3.0)</label>
                 </div>
                 <p class="desc-text" style="line-height:1.4;">
-                * 쉬움: 벽 튕기기만 (직진)<br>
+                * 쉬움: 직선 이동 (방향 전환 X)<br>
                 * 보통: 3초 이상 이동 후 방향 전환
                 </p>
             </div>
@@ -434,7 +433,9 @@ class TrackerGame {
         this.zoneSpeed = 0; 
         this.health = 100;
         this.active = false;
-        this.moveTimer = 0; 
+        
+        // 시간 기반 타이머 (ms)
+        this.nextChangeTime = 0;
 
         this.isDragging = false;
         this.dragOffset = { x: 0, y: 0 };
@@ -494,7 +495,6 @@ class TrackerGame {
     }
 
     resize() {
-        // resize 시에는 clientHeight 등을 다시 계산
         this.canvas.width = this.canvas.parentElement.clientWidth;
         this.canvas.height = this.canvas.parentElement.clientHeight;
         if (!this.active && this.canvas.width > 0) {
@@ -513,23 +513,23 @@ class TrackerGame {
         
         this.resize(); 
 
-        // 속도 및 로직 설정
+        // 속도 및 크기 설정
         if (diff === 'easy') {
-            this.zoneSpeed = 1.0;  // 속도 1.0
+            this.zoneSpeed = 1.0;  // 요청하신 속도
             this.zone.width = 120; this.zone.height = 120;
             this.zone.radius = 0;
-            this.moveTimer = Infinity; // 랜덤 방향 전환 없음
+            this.nextChangeTime = Infinity; // 방향 전환 없음 (직진만)
         } else if (diff === 'normal') {
-            this.zoneSpeed = 2.0;  // 속도 2.0
+            this.zoneSpeed = 2.0;  // 요청하신 속도
             this.zone.width = 100; this.zone.height = 100;
             this.zone.radius = 15; 
-            // 3초 이상 (180프레임 + a)
-            this.moveTimer = 180 + Math.random() * 120;
+            // 3초 이상 (ms 기준)
+            this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
         } else {
-            this.zoneSpeed = 3.0;  // 속도 3.0
+            this.zoneSpeed = 3.0;  // 요청하신 속도
             this.zone.width = 80; this.zone.height = 80;
             this.zone.radius = 15;
-            this.moveTimer = 60 + Math.random() * 60; // 기존 로직
+            this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
         }
 
         // 초기 이동 방향 설정
@@ -541,13 +541,14 @@ class TrackerGame {
         this.zone.vx = Math.cos(angle) * this.zoneSpeed;
         this.zone.vy = Math.sin(angle) * this.zoneSpeed;
         
-        // 타이머 재설정 (보통 모드일 때만 3초 규칙 적용)
+        // 타이머 재설정 (실제 시간 기반)
         if (this.difficulty === 'normal') {
-            this.moveTimer = 180 + Math.random() * 120;
+            // 3초 ~ 5초 사이
+            this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
         } else if (this.difficulty === 'hard') {
-            this.moveTimer = 60 + Math.random() * 60;
+            this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
         }
-        // Easy는 타이머 안 씀 (무한)
+        // Easy는 타이머 안 씀
     }
 
     update() {
@@ -564,7 +565,7 @@ class TrackerGame {
         const halfW = this.zone.width / 2;
         const halfH = this.zone.height / 2;
 
-        // 2. 벽 튕기기 (화면 밖으로 나가지 않게)
+        // 2. 벽 튕기기
         let hitWall = false;
         if (this.zone.x - halfW < 0) {
             this.zone.x = halfW;
@@ -586,10 +587,9 @@ class TrackerGame {
             hitWall = true;
         }
 
-        // 3. 시간 경과에 따른 방향 전환 (쉬움 모드는 제외)
+        // 3. 시간 경과에 따른 방향 전환 (쉬움 제외)
         if (this.difficulty !== 'easy') {
-            this.moveTimer--;
-            if (this.moveTimer <= 0) {
+            if (Date.now() > this.nextChangeTime) {
                 this.setRandomVelocity();
             }
         }
@@ -616,7 +616,7 @@ class TrackerGame {
             this.health = Math.min(100, this.health + 0.15); 
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.15; // 체력 감소 속도 절반 (기존 0.3 -> 0.15)
+            this.health -= 0.15; // 체력 감소 속도 절반
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
@@ -970,6 +970,7 @@ const quiz = new QuizManager();
 
 const app = {
     mode: 'game', 
+    lastFrameTime: 0, // FPS 고정을 위한 시간 추적
 
     init: function() {
         ui.renderList('list-prev', QUESTIONS_PREV);
@@ -1027,7 +1028,7 @@ const app = {
             bottomScreen.style.flex = '1';
             const diff = document.querySelector('input[name="diff"]:checked').value;
             tracker.start(diff);
-            this.loop();
+            this.loop(0);
         } else {
             topScreen.style.display = 'none';
             bottomScreen.style.height = '100%';
@@ -1042,11 +1043,24 @@ const app = {
             useTTS: useTTS
         });
     },
-    loop: function() {
+    // FPS Throttling 적용 루프
+    loop: function(timestamp) {
         if (!tracker.active) return;
-        tracker.update();
-        tracker.render();
-        requestAnimationFrame(() => this.loop());
+        
+        // 첫 프레임 초기화
+        if (!this.lastFrameTime) this.lastFrameTime = timestamp;
+
+        // 경과 시간 계산
+        const elapsed = timestamp - this.lastFrameTime;
+
+        // 약 60FPS (16.6ms) 간격으로만 업데이트
+        if (elapsed > 1000 / 60) {
+            tracker.update();
+            tracker.render();
+            this.lastFrameTime = timestamp;
+        }
+
+        requestAnimationFrame((t) => this.loop(t));
     },
     gameOver: function() {
         tracker.active = false;
@@ -1063,7 +1077,11 @@ const app = {
         
         if (this.mode === 'game') {
             tracker.start(tracker.difficulty);
-            this.loop();
+            // 재시작 시 루프 다시 호출 필요 없음 (이미 돌고 있음 or 활성화됨)
+            if(!tracker.active) {
+                 tracker.active = true; 
+                 requestAnimationFrame((t) => this.loop(t));
+            }
         }
         
         quiz.start({
