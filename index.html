@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>Focus Trainer: Final Complete</title>
+    <title>Focus Trainer: Dual Mode</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <style>
         body {
@@ -38,12 +38,16 @@
             margin: 5px;
             border-radius: 8px;
             border: 1px solid #444;
+            /* 연습모드일 때 숨김 처리를 위해 flex 조절 */
+            display: flex; 
+            flex-direction: column;
         }
 
         canvas#game-canvas {
             width: 100%;
             height: 100%;
             display: block;
+            touch-action: none; /* 캔버스 직접 터치 허용 */
         }
 
         #hp-bar-container {
@@ -61,7 +65,7 @@
             transition: width 0.1s linear;
         }
 
-        /* === 하단 화면 (퀴즈 & 터치패드) === */
+        /* === 하단 화면 (퀴즈) === */
         #bottom-screen {
             flex: 1;
             position: relative;
@@ -73,61 +77,34 @@
             margin: 5px;
             border-radius: 8px;
             border: 1px solid #444;
+            transition: flex 0.3s; /* 모드 전환 애니메이션 */
         }
 
-        /* 퀴즈 영역 (상단 고정) */
+        /* 퀴즈 영역 */
         #quiz-area {
             width: 100%;
-            height: 40%;
+            height: 100%; /* 게임모드에서는 하단 전체 사용 */
             background: #222;
             border: 1px solid #555;
             border-radius: 8px;
-            padding: 10px;
+            padding: 20px;
             box-sizing: border-box;
             text-align: center;
             display: flex;
             flex-direction: column;
             justify-content: center;
             position: relative;
-            margin-bottom: 10px;
             pointer-events: auto; 
             z-index: 20;
         }
 
-        .q-type { color: #aaa; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
-        .q-text { color: white; font-size: 17px; font-weight: bold; line-height: 1.3; word-break: keep-all; }
+        .q-type { color: #aaa; font-size: 14px; margin-bottom: 10px; font-weight: bold; }
+        .q-text { color: white; font-size: 22px; font-weight: bold; line-height: 1.4; word-break: keep-all; flex: 1; display: flex; align-items: center; justify-content: center; }
         .q-answer { color: #00ff00; font-size: 18px; margin-top: 5px; font-weight: bold; display: none; }
-        .q-timer { color: #00ffff; font-size: 24px; margin-top: 5px; font-family: monospace; display: none;}
+        .q-timer { color: #00ffff; font-size: 24px; margin-top: 10px; font-family: monospace; display: none;}
         
-        #mic-status { font-size: 11px; color: #666; position: absolute; bottom: 5px; width: 100%; left: 0; }
+        #mic-status { font-size: 12px; color: #666; margin-top: 10px; width: 100%; }
         .listening { color: #ff5555 !important; animation: pulse 1s infinite; }
-
-        /* 터치패드 영역 */
-        #touchpad-area {
-            flex: 1;
-            width: 100%;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px dashed #444;
-            border-radius: 8px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: #444;
-            font-size: 12px;
-            position: relative;
-            touch-action: none;
-        }
-        
-        /* 터치 피드백 (손가락 위치 표시) */
-        #touch-feedback {
-            position: absolute;
-            width: 40px; height: 40px;
-            border: 2px solid rgba(0, 255, 255, 0.5);
-            border-radius: 50%;
-            transform: translate(-50%, -50%);
-            display: none;
-            pointer-events: none;
-        }
 
         /* 오버레이 (시작/종료/설정) */
         .overlay {
@@ -141,7 +118,7 @@
             z-index: 100;
             overflow-y: auto;
         }
-        #game-over, #game-clear { display: none; z-index: 200; }
+        #game-over, #game-clear, #start-screen, #main-menu { z-index: 200; }
 
         .btn-start {
             padding: 15px 40px;
@@ -156,6 +133,12 @@
             width: 80%;
             max-width: 300px;
         }
+        .btn-mode {
+            background: #00ffff; 
+            color: black; 
+            height: 80px; 
+            font-size: 24px;
+        }
         .btn-retry { background: #ff3333; color: white; }
         .btn-sub { background: #444; color: white; font-size: 16px; }
 
@@ -167,15 +150,19 @@
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
-            max-height: 75vh;
+            max-height: 70vh;
             overflow-y: auto;
         }
         
         .section-title { color: #00ffff; font-size: 16px; margin: 15px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .radio-group { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .radio-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+        .radio-horizontal { flex-direction: row; justify-content: space-between; }
+        
         .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
         label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ddd; font-size: 14px; }
         
+        .desc-text { font-size: 12px; color: #888; margin-left: 25px; margin-bottom: 5px; display: block;}
+
         /* 문제 선택 모달 */
         #problem-selector {
             display: none;
@@ -202,65 +189,109 @@
         }
         .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; width: 18px; height: 18px; }
 
+        /* 모드별 UI 제어 */
+        .mode-specific { display: none; }
+
         @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
     </style>
 </head>
 <body>
 
 <div id="ds-container">
-    <!-- 상단 화면 -->
     <div id="top-screen">
         <canvas id="game-canvas"></canvas>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
         
-        <!-- 실패 화면 -->
-        <div id="game-over" class="overlay">
+        <div id="game-over" class="overlay" style="display:none;">
             <h1 style="color:red">훈련 실패</h1>
             <p>영역 이탈로 인한 종료</p>
             <button class="btn-start btn-retry" onclick="location.reload()">처음으로</button>
         </div>
         
-        <!-- 완료 화면 -->
-        <div id="game-clear" class="overlay">
+        <div id="game-clear" class="overlay" style="display:none;">
             <h1 style="color:#00ff00">모든 문제 완료</h1>
             <p>선택한 문제를 모두 풀었습니다.</p>
             <div style="display:flex; flex-direction:column; width:100%; align-items:center;">
-                <button class="btn-start" onclick="app.restartGame()">다시 시작 (문제 섞기)</button>
-                <button class="btn-start btn-sub" onclick="location.reload()">종료 (처음으로)</button>
+                <button class="btn-start" onclick="app.restartGame()">다시 시작</button>
+                <button class="btn-start btn-sub" onclick="location.reload()">종료 (홈으로)</button>
             </div>
         </div>
     </div>
 
-    <!-- 하단 화면 -->
     <div id="bottom-screen">
         <div id="quiz-area">
             <div class="q-type" id="q-type">READY</div>
-            <div class="q-text" id="q-text">터치패드를 조작하여 시작</div>
+            <div class="q-text" id="q-text">모드 선택 중...</div>
             <div class="q-timer" id="q-timer">00.00</div>
             <div class="q-answer" id="q-answer">정답</div>
-            <div id="mic-status">마이크 대기 중...</div>
-        </div>
-
-        <div id="touchpad-area">
-            <div style="pointer-events: none;">TOUCHPAD AREA (DRAG TO MOVE)</div>
-            <div id="touch-feedback"></div>
+            <div id="mic-status"></div>
         </div>
     </div>
 
-    <!-- 시작 설정 -->
-    <div id="start-screen" class="overlay">
-        <h2 style="color:#00ff00; margin: 20px 0;">Focus Trainer Final</h2>
+    <div id="main-menu" class="overlay">
+        <h1 style="color:#00ff00; margin-bottom: 30px;">Focus Trainer</h1>
+        <button class="btn-start btn-mode" onclick="app.selectMode('game')">🎮 게임 모드<br><span style="font-size:14px; font-weight:normal;">추적 게임 + 구술 훈련</span></button>
+        <button class="btn-start btn-mode" style="background:#ffcc00;" onclick="app.selectMode('practice')">📚 연습 모드<br><span style="font-size:14px; font-weight:normal;">문제 풀이 집중 (게임 X)</span></button>
+    </div>
+
+    <div id="start-screen" class="overlay" style="display:none;">
+        <h2 style="color:#00ff00; margin: 20px 0;" id="setting-title">설정</h2>
         
         <div class="settings-box">
-            <!-- 난이도 -->
-            <div class="section-title">난이도 (속도)</div>
-            <div class="radio-group">
-                <label><input type="radio" name="diff" value="easy"> 쉬움 (0.2배)</label>
-                <label><input type="radio" name="diff" value="normal" checked> 보통 (0.4배)</label>
-                <label><input type="radio" name="diff" value="hard"> 어려움 (0.6배)</label>
-            </div>
             
-            <!-- 음성 설정 -->
+            <div class="section-title">문제 출제 방식</div>
+            <div class="radio-group radio-horizontal">
+                <label><input type="radio" name="q-mode" value="all" checked onchange="ui.toggleProblemSelector(false)"> 전체 랜덤</label>
+                <label><input type="radio" name="q-mode" value="select" onchange="ui.toggleProblemSelector(true)"> 문제 선택</label>
+            </div>
+            <div id="problem-selector">
+                <div class="tab-container">
+                    <div id="tab-prev" class="tab active" onclick="ui.switchTab('prev')">기존 기출</div>
+                    <div id="tab-oral" class="tab" onclick="ui.switchTab('oral')">추가 구술</div>
+                </div>
+                <div id="list-prev" class="problem-list"></div>
+                <div id="list-oral" class="problem-list" style="display:none;"></div>
+                <div style="margin-top:10px; display:flex; gap:10px;">
+                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(true)">전체 선택</button>
+                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(false)">전체 해제</button>
+                </div>
+            </div>
+
+            <div id="settings-game" class="mode-specific">
+                <div class="section-title">난이도 (공 추적 속도)</div>
+                <div class="radio-group radio-horizontal">
+                    <label><input type="radio" name="diff" value="easy"> 쉬움</label>
+                    <label><input type="radio" name="diff" value="normal" checked> 보통</label>
+                    <label><input type="radio" name="diff" value="hard"> 어려움</label>
+                </div>
+                <p class="desc-text">* 파란 공을 직접 터치하여 드래그하세요.</p>
+            </div>
+
+            <div id="settings-practice" class="mode-specific">
+                <div class="section-title">연습 방식 설정</div>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="p-mode" value="continuous" checked onchange="ui.toggleTimerSetting(false)"> 
+                        연속 모드
+                    </label>
+                    <span class="desc-text">답변 완료(터치/음성) 시 즉시 다음 문제 출제</span>
+                    
+                    <label>
+                        <input type="radio" name="p-mode" value="timer" onchange="ui.toggleTimerSetting(true)"> 
+                        시간 설정 모드
+                    </label>
+                    <span class="desc-text">설정한 시간 간격으로 문제 자동 출제 (답변 여부 무관)</span>
+                </div>
+
+                <div id="timer-input-area" style="display:none; margin-top:10px; border-top:1px dashed #444; padding-top:10px;">
+                    <label style="font-size:16px;">
+                        ⏱️ 간격 설정: 
+                        <input type="number" id="p-interval" value="60" style="width:60px; background:#333; color:white; border:1px solid #555; padding:5px; margin:0 10px;"> 
+                        초
+                    </label>
+                </div>
+            </div>
+
             <div class="section-title">음성 / TTS 설정</div>
             <div class="checkbox-row">
                 <label><input type="checkbox" id="use-voice" checked> 내 목소리 인식 (Chrome 권장)</label>
@@ -269,39 +300,17 @@
                 <label><input type="checkbox" id="use-tts" checked> 문제 읽어주기 (TTS)</label>
             </div>
             
-            <!-- 문제 설정 -->
-            <div class="section-title">문제 출제 방식</div>
-            <div class="radio-group">
-                <label><input type="radio" name="q-mode" value="all" checked onchange="ui.toggleProblemSelector(false)"> 기출 전체 랜덤</label>
-                <label><input type="radio" name="q-mode" value="select" onchange="ui.toggleProblemSelector(true)"> 문제 선택</label>
-            </div>
-
-            <!-- 문제 선택기 -->
-            <div id="problem-selector">
-                <div class="tab-container">
-                    <div id="tab-prev" class="tab active" onclick="ui.switchTab('prev')">기존 기출</div>
-                    <div id="tab-oral" class="tab" onclick="ui.switchTab('oral')">추가 구술</div>
-                </div>
-                
-                <div id="list-prev" class="problem-list"></div>
-                <div id="list-oral" class="problem-list" style="display:none;"></div>
-                
-                <div style="margin-top:10px; display:flex; gap:10px;">
-                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(true)">전체 선택</button>
-                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(false)">전체 해제</button>
-                </div>
-            </div>
         </div>
 
-        <button class="btn-start" onclick="app.start()">훈련 시작</button>
+        <button class="btn-start" onclick="app.start()">시작하기</button>
+        <button class="btn-start btn-sub" onclick="location.reload()">뒤로 가기</button>
     </div>
 </div>
 
 <script>
 /* ------------------------------------------------------------------
-   1. 데이터 (문제 DB) - 파일 내용을 기반으로 작성됨
+   1. 데이터 (문제 DB)
 ------------------------------------------------------------------ */
-// 구술 (6, 12번 제외)
 const QUESTIONS_ORAL = [
     "1. ARL 설치차량의 접지 복귀 방법",
     "2. 7400호대 디젤전기기관차에 설치된 전동기의 종류",
@@ -316,7 +325,6 @@ const QUESTIONS_ORAL = [
     "13. 기관전부에 있는 치차의 종류와 부속장치 구동치차와 반대방향으로 회전하는 치차의 종류"
 ];
 
-// 기출 (7번 제외)
 const QUESTIONS_PREV = [
     "1. 공기제동시험을 시행하는 경우는 언제인가?",
     "2. 제동감도시험을 생략할 수 있는 경우는 언제인가?",
@@ -362,120 +370,90 @@ const QUESTIONS_PREV = [
 ];
 
 /* ------------------------------------------------------------------
-   2. 터치패드 컨트롤러 (TouchPad)
------------------------------------------------------------------- */
-class TouchPad {
-    constructor(areaId, feedbackId, onMove) {
-        this.area = document.getElementById(areaId);
-        this.feedback = document.getElementById(feedbackId);
-        this.onMove = onMove; 
-        
-        this.active = false;
-        this.touchId = null;
-        this.origin = { x: 0, y: 0 };
-        this.maxDist = 50; 
-
-        // 이벤트 바인딩
-        this.area.addEventListener('touchstart', e => this.start(e), {passive: false});
-        this.area.addEventListener('touchmove', e => this.move(e), {passive: false});
-        this.area.addEventListener('touchend', e => this.end(e));
-        this.area.addEventListener('mousedown', e => this.start(e));
-        document.addEventListener('mousemove', e => this.move(e));
-        document.addEventListener('mouseup', e => this.end(e));
-    }
-
-    start(e) {
-        e.preventDefault();
-        this.active = true;
-        
-        let clientX, clientY;
-        if (e.touches) {
-            this.touchId = e.changedTouches[0].identifier;
-            clientX = e.changedTouches[0].clientX;
-            clientY = e.changedTouches[0].clientY;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-        this.origin = { x: clientX, y: clientY };
-        
-        this.feedback.style.display = 'block';
-        this.feedback.style.left = clientX + 'px';
-        this.feedback.style.top = clientY + 'px';
-        this.feedback.style.transform = 'translate(-50%, -50%)';
-        
-        this.onMove(0, 0);
-    }
-
-    move(e) {
-        if (!this.active) return;
-        e.preventDefault();
-        
-        let clientX, clientY;
-        if (e.touches) {
-            for(let i=0; i<e.changedTouches.length; i++) {
-                if(e.changedTouches[i].identifier === this.touchId) {
-                    clientX = e.changedTouches[i].clientX;
-                    clientY = e.changedTouches[i].clientY;
-                    break;
-                }
-            }
-            if (clientX === undefined) return;
-        } else {
-            clientX = e.clientX;
-            clientY = e.clientY;
-        }
-
-        const dx = clientX - this.origin.x;
-        const dy = clientY - this.origin.y;
-        
-        let nx = Math.max(-1, Math.min(1, dx / this.maxDist));
-        let ny = Math.max(-1, Math.min(1, dy / this.maxDist));
-        
-        const visualDist = Math.min(Math.sqrt(dx*dx + dy*dy), this.maxDist);
-        const angle = Math.atan2(dy, dx);
-        const vx = Math.cos(angle) * visualDist;
-        const vy = Math.sin(angle) * visualDist;
-        
-        this.feedback.style.transform = `translate(calc(-50% + ${vx}px), calc(-50% + ${vy}px))`;
-        this.onMove(nx, ny);
-    }
-
-    end(e) {
-        if (!this.active) return;
-        this.active = false;
-        this.feedback.style.display = 'none';
-        this.onMove(0, 0);
-    }
-}
-
-/* ------------------------------------------------------------------
-   3. 추적 게임 (Tracker)
+   2. 추적 게임 (Tracker) - 직접 제어 방식으로 수정됨
 ------------------------------------------------------------------ */
 class TrackerGame {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         
-        this.player = { x: 0, y: 0, radius: 8, vx: 0, vy: 0, targetVx: 0, targetVy: 0 };
+        // 플레이어 설정
+        this.player = { x: 0, y: 0, radius: 15 }; // 반지름 키움
         this.zone = { x: 0, y: 0, width: 100, height: 100, radius: 0, targetX: 0, targetY: 0 };
         
         this.difficulty = 'normal'; 
-        this.playerSpeed = 6; 
-        this.zoneMaxSpeed = 0; 
-        
+        this.zoneSpeed = 0; 
         this.health = 100;
         this.active = false;
         this.moveTimer = 0; 
+
+        // 직접 제어 변수
+        this.isDragging = false;
+        this.dragOffset = { x: 0, y: 0 };
         
         this.resize();
         window.addEventListener('resize', () => this.resize());
+        
+        // 이벤트 리스너 (직접 터치)
+        this.canvas.addEventListener('mousedown', e => this.handleStart(e));
+        window.addEventListener('mousemove', e => this.handleMove(e));
+        window.addEventListener('mouseup', e => this.handleEnd(e));
+        
+        this.canvas.addEventListener('touchstart', e => this.handleStart(e), {passive: false});
+        window.addEventListener('touchmove', e => this.handleMove(e), {passive: false});
+        window.addEventListener('touchend', e => this.handleEnd(e));
+    }
+
+    getPos(e) {
+        let cx, cy;
+        if(e.touches) {
+            cx = e.touches[0].clientX;
+            cy = e.touches[0].clientY;
+        } else {
+            cx = e.clientX;
+            cy = e.clientY;
+        }
+        const rect = this.canvas.getBoundingClientRect();
+        return { x: cx - rect.left, y: cy - rect.top };
+    }
+
+    handleStart(e) {
+        if (!this.active) return;
+        e.preventDefault();
+        const pos = this.getPos(e);
+        
+        // 플레이어 공 내부를 터치했는지 확인
+        const dist = Math.sqrt((pos.x - this.player.x)**2 + (pos.y - this.player.y)**2);
+        
+        // 터치 판정을 조금 여유있게 (반지름 * 2)
+        if (dist < this.player.radius * 2.5) {
+            this.isDragging = true;
+            this.dragOffset.x = pos.x - this.player.x;
+            this.dragOffset.y = pos.y - this.player.y;
+        }
+    }
+
+    handleMove(e) {
+        if (!this.active || !this.isDragging) return;
+        e.preventDefault(); 
+        const pos = this.getPos(e);
+        
+        this.player.x = pos.x - this.dragOffset.x;
+        this.player.y = pos.y - this.dragOffset.y;
+
+        // 화면 밖 제한
+        this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
+        this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
+    }
+
+    handleEnd(e) {
+        this.isDragging = false;
     }
 
     resize() {
         this.canvas.width = this.canvas.parentElement.clientWidth;
         this.canvas.height = this.canvas.parentElement.clientHeight;
-        if (!this.active) {
+        if (!this.active && this.canvas.width > 0) {
             this.player.x = this.canvas.width / 2;
             this.player.y = this.canvas.height / 2;
             this.zone.x = this.canvas.width / 2;
@@ -487,116 +465,78 @@ class TrackerGame {
         this.difficulty = diff;
         this.active = true;
         this.health = 100;
+        this.isDragging = false;
         
-        this.player.x = this.canvas.width / 2;
-        this.player.y = this.canvas.height / 2;
-        this.player.vx = 0; this.player.vy = 0;
-        this.player.targetVx = 0; this.player.targetVy = 0;
-
-        this.zone.x = this.canvas.width / 2;
-        this.zone.y = this.canvas.height / 2;
-        this.zone.targetX = this.zone.x;
-        this.zone.targetY = this.zone.y;
-
+        this.resize(); // 위치 초기화
+        
+        // 난이도 설정
         if (diff === 'easy') {
-            this.zoneMaxSpeed = this.playerSpeed * 0.2;
-            this.zone.width = 140; this.zone.height = 140;
+            this.zoneSpeed = 1.0;
+            this.zone.width = 160; this.zone.height = 160;
             this.zone.radius = 0;
         } else if (diff === 'normal') {
-            this.zoneMaxSpeed = this.playerSpeed * 0.4;
-            this.zone.width = 120; this.zone.height = 120;
-            this.zone.radius = 10; 
+            this.zoneSpeed = 2.0;
+            this.zone.width = 130; this.zone.height = 130;
+            this.zone.radius = 15; 
         } else {
-            this.zoneMaxSpeed = this.playerSpeed * 0.6;
+            this.zoneSpeed = 3.5;
             this.zone.width = 100; this.zone.height = 100;
-            this.zone.radius = 10;
+            this.zone.radius = 15;
         }
-    }
-
-    setInput(x, y) {
-        this.player.targetVx = x * this.playerSpeed;
-        this.player.targetVy = y * this.playerSpeed;
     }
 
     update() {
         if (!this.active) return;
-
-        this.player.vx += (this.player.targetVx - this.player.vx) * 0.15;
-        this.player.vy += (this.player.targetVy - this.player.vy) * 0.15;
-        this.player.x += this.player.vx;
-        this.player.y += this.player.vy;
-        this.player.x = Math.max(0, Math.min(this.canvas.width, this.player.x));
-        this.player.y = Math.max(0, Math.min(this.canvas.height, this.player.y));
-
         this.updateZoneAI();
         this.checkCollision();
     }
 
     updateZoneAI() {
-        const pad = 80;
-        if (this.difficulty === 'easy') {
-            if (this.moveTimer <= 0) {
-                this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
-                this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
-                this.moveTimer = 200; 
-            }
-            this.moveTimer--;
-            this.zone.x += (this.zone.targetX - this.zone.x) * 0.005;
-            this.zone.y += (this.zone.targetY - this.zone.y) * 0.005;
-        } 
-        else if (this.difficulty === 'normal') {
-            if (this.moveTimer <= 0) {
-                this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
-                this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
-                this.moveTimer = 120; 
-            }
-            this.moveTimer--;
-            this.zone.x += (this.zone.targetX - this.zone.x) * 0.01;
-            this.zone.y += (this.zone.targetY - this.zone.y) * 0.01;
+        const pad = 100;
+        const dx = this.zone.targetX - this.zone.x;
+        const dy = this.zone.targetY - this.zone.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+
+        // 목표 지점 도달 시 새로운 목표 설정
+        if (dist < 10 || this.moveTimer <= 0) {
+            this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
+            this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
+            this.moveTimer = 100 + Math.random() * 100;
         }
-        else {
-            const dx = this.zone.targetX - this.zone.x;
-            const dy = this.zone.targetY - this.zone.y;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            if (dist < 10 || this.moveTimer <= 0) {
-                this.zone.targetX = pad + Math.random() * (this.canvas.width - pad*2);
-                this.zone.targetY = pad + Math.random() * (this.canvas.height - pad*2);
-                this.moveTimer = 60 + Math.random() * 60;
-            }
-            this.moveTimer--;
-            const angle = Math.atan2(dy, dx);
-            this.zone.x += Math.cos(angle) * this.zoneMaxSpeed;
-            this.zone.y += Math.sin(angle) * this.zoneMaxSpeed;
-            
-            const time = Date.now() / 1000;
-            const morphFactor = (Math.sin(time) + 1) / 2;
-            this.zone.radius = 10 + (morphFactor * 20);
+        this.moveTimer--;
+
+        // 이동
+        const angle = Math.atan2(dy, dx);
+        this.zone.x += Math.cos(angle) * this.zoneSpeed;
+        this.zone.y += Math.sin(angle) * this.zoneSpeed;
+        
+        // Morphing (어려움 난이도에서만)
+        if (this.difficulty === 'hard') {
+            const time = Date.now() / 500;
+            this.zone.radius = 10 + ((Math.sin(time) + 1) * 20);
         }
+
         this.zone.x = Math.max(pad, Math.min(this.canvas.width - pad, this.zone.x));
         this.zone.y = Math.max(pad, Math.min(this.canvas.height - pad, this.zone.y));
     }
 
     checkCollision() {
+        // 사각형 충돌 판정 (단순화)
         const halfW = this.zone.width / 2;
         const halfH = this.zone.height / 2;
         const dx = Math.abs(this.player.x - this.zone.x);
         const dy = Math.abs(this.player.y - this.zone.y);
         let inside = false;
 
-        if (this.difficulty === 'hard' && this.zone.radius > 20) {
-            const dist = Math.sqrt((this.player.x - this.zone.x)**2 + (this.player.y - this.zone.y)**2);
-            if (dist < (this.zone.width / 2)) inside = true;
-        } else {
-            if (dx < halfW && dy < halfH) inside = true;
-        }
+        if (dx < halfW && dy < halfH) inside = true;
 
         const hpBar = document.getElementById('hp-bar');
         if (inside) {
             this.ctx.strokeStyle = "#00ff00"; 
-            this.health = Math.min(100, this.health + 0.1);
+            this.health = Math.min(100, this.health + 0.15); // 회복 속도
         } else {
             this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.05; 
+            this.health -= 0.1; // 데미지 속도
             if (this.health <= 0) {
                 this.health = 0;
                 app.gameOver();
@@ -609,6 +549,7 @@ class TrackerGame {
         this.ctx.fillStyle = "#000";
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // 그리드 그리기
         this.ctx.strokeStyle = "#222";
         this.ctx.lineWidth = 1;
         const gridSize = 50;
@@ -621,16 +562,18 @@ class TrackerGame {
         }
         this.ctx.stroke();
 
+        // Zone 그리기
         this.ctx.lineWidth = 4;
+        this.ctx.strokeStyle = this.ctx.strokeStyle === "#00ff00" ? "#00ff00" : "#ff0000";
         this.drawRoundRect(this.zone.x - this.zone.width/2, this.zone.y - this.zone.height/2, 
                            this.zone.width, this.zone.height, this.zone.radius);
         this.ctx.stroke();
-        
         this.ctx.fillStyle = this.ctx.strokeStyle === "#00ff00" ? "rgba(0, 255, 0, 0.1)" : "rgba(255, 0, 0, 0.1)";
         this.ctx.fill();
 
+        // Player 그리기
         this.ctx.fillStyle = "#00ffff";
-        this.ctx.shadowBlur = 10;
+        this.ctx.shadowBlur = 15;
         this.ctx.shadowColor = "#00ffff";
         this.ctx.beginPath();
         this.ctx.arc(this.player.x, this.player.y, this.player.radius, 0, Math.PI*2);
@@ -650,7 +593,7 @@ class TrackerGame {
 }
 
 /* ------------------------------------------------------------------
-   4. 퀴즈 매니저
+   3. 퀴즈 매니저 (QuizManager)
 ------------------------------------------------------------------ */
 class QuizManager {
     constructor() {
@@ -661,6 +604,12 @@ class QuizManager {
         this.timerStart = 0;
         this.timerRef = null;
         this.nextTimer = null;
+        this.intervalTimer = null; // 연습모드(시간)용
+        
+        this.mode = 'game'; // game, practice
+        this.practiceType = 'continuous'; // continuous, timer
+        this.practiceInterval = 60; // seconds
+
         this.useVoice = false;
         this.useTTS = false;
         this.recognition = null;
@@ -685,13 +634,18 @@ class QuizManager {
     }
 
     processVoice(txt) {
-        if (this.state === 'question') {
-            if (txt.startsWith('예') || txt.startsWith('네')) {
-                this.startAnswering();
-            }
-        } else if (this.state === 'answering') {
-            if (txt.includes('이상') || txt.includes('끝')) {
-                this.finishAnswering();
+        if (!this.active) return;
+        
+        // 게임 모드 or 연습-연속모드: 상호작용 필요
+        if (this.mode === 'game' || (this.mode === 'practice' && this.practiceType === 'continuous')) {
+            if (this.state === 'question') {
+                if (txt.startsWith('예') || txt.startsWith('네') || txt.includes('시작')) {
+                    this.startAnswering();
+                }
+            } else if (this.state === 'answering') {
+                if (txt.includes('이상') || txt.includes('끝')) {
+                    this.finishAnswering();
+                }
             }
         }
     }
@@ -700,20 +654,36 @@ class QuizManager {
         this.currentSet = [...list];
     }
 
-    start(useVoice, useTTS) {
+    start(config) {
         this.active = true;
-        this.useVoice = useVoice;
-        this.useTTS = useTTS;
+        this.mode = config.mode;
+        this.practiceType = config.practiceType;
+        this.practiceInterval = config.practiceInterval;
+        this.useVoice = config.useVoice;
+        this.useTTS = config.useTTS;
+
+        // 문제 섞기
         this.remaining = [...this.currentSet].sort(() => Math.random() - 0.5);
-        if (useVoice && this.recognition) try{this.recognition.start()}catch(e){}
         
-        this.scheduleNext();
+        if (this.useVoice && this.recognition) try{this.recognition.start()}catch(e){}
+        
+        // 첫 문제 시작
+        if (this.mode === 'practice' && this.practiceType === 'timer') {
+             // 타이머 모드는 즉시 시작 후 반복
+             this.showQuestion();
+             this.intervalTimer = setInterval(() => {
+                 this.finishAnswering(true); // 강제 종료 및 다음
+             }, this.practiceInterval * 1000);
+        } else {
+            this.scheduleNext();
+        }
     }
 
     stop() {
         this.active = false;
         if (this.recognition) try{this.recognition.stop()}catch(e){}
         clearTimeout(this.nextTimer);
+        clearInterval(this.intervalTimer);
         cancelAnimationFrame(this.timerRef);
         window.speechSynthesis.cancel(); 
     }
@@ -724,25 +694,39 @@ class QuizManager {
             return;
         }
 
-        const delay = 3000 + Math.random() * 3000;
+        // 게임모드: 랜덤 딜레이
+        // 연습(연속): 짧은 딜레이
+        const delay = this.mode === 'game' ? (3000 + Math.random() * 3000) : 500;
+        
         this.state = 'idle';
         
         document.getElementById('q-type').innerText = "STANDBY";
-        document.getElementById('q-text').innerText = `대기 중... (남은 문제: ${this.remaining.length})`;
+        document.getElementById('q-text').innerText = `대기 중... (남은: ${this.remaining.length})`;
         document.getElementById('q-answer').style.display = 'none';
         document.getElementById('q-timer').style.display = 'none';
-        document.getElementById('mic-status').innerText = "침묵 유지";
-        document.getElementById('mic-status').className = "";
+        
+        const micEl = document.getElementById('mic-status');
+        micEl.innerText = "다음 문제 준비 중...";
+        micEl.className = "";
 
         this.nextTimer = setTimeout(() => this.showQuestion(), delay);
     }
 
     showQuestion() {
         if (!this.active) return;
-        const rawQ = this.remaining.pop();
-        this.currentQ = rawQ;
         
-        // TTS 및 게임 내 표시용: 번호 제거 (정규식: 숫자. 또는 숫자-숫자.)
+        // 문제 소진 시 (타이머 모드 루프)
+        if (this.remaining.length === 0) {
+            // 연습모드면 다시 섞어서 무한 반복, 게임모드면 클리어
+            if (this.mode === 'practice') {
+                 this.remaining = [...this.currentSet].sort(() => Math.random() - 0.5);
+            } else {
+                 app.gameClear();
+                 return;
+            }
+        }
+
+        const rawQ = this.remaining.pop();
         const displayText = rawQ.replace(/^[0-9]+(-[0-9]+)?\.\s*/, "");
 
         this.state = 'question';
@@ -754,12 +738,20 @@ class QuizManager {
         }
 
         const micEl = document.getElementById('mic-status');
-        if (this.useVoice) {
-            micEl.innerText = "🎤 '예'라고 답하면 시작";
-            micEl.className = "listening";
+        
+        if (this.mode === 'practice' && this.practiceType === 'timer') {
+            // 타이머 모드: 그냥 표시만 함
+             micEl.innerText = `⏳ ${this.practiceInterval}초 후 다음 문제`;
+             this.state = 'viewing'; // 별도 상태
         } else {
-            micEl.innerText = "터치하여 답변 시작";
-            micEl.className = "";
+            // 상호작용 모드
+            if (this.useVoice) {
+                micEl.innerText = "🎤 '예'라고 답하면 타이머 시작";
+                micEl.className = "listening";
+            } else {
+                micEl.innerText = "터치하여 답변 시작";
+                micEl.className = "";
+            }
         }
     }
     
@@ -773,6 +765,9 @@ class QuizManager {
     }
 
     startAnswering() {
+        // 타이머 모드면 무시
+        if (this.mode === 'practice' && this.practiceType === 'timer') return;
+
         window.speechSynthesis.cancel(); 
         this.state = 'answering';
         this.timerStart = performance.now();
@@ -783,7 +778,7 @@ class QuizManager {
         if (this.useVoice) {
             micEl.innerText = "🗣️ 답변 후 '이상입니다' 발언";
         } else {
-            micEl.innerText = "답변 후 터치하여 종료";
+            micEl.innerText = "답변 후 터치하여 완료";
         }
         this.updateTimer();
     }
@@ -796,30 +791,44 @@ class QuizManager {
         this.timerRef = requestAnimationFrame(() => this.updateTimer());
     }
 
-    finishAnswering() {
+    finishAnswering(auto = false) {
+        // 타이머 모드 자동 넘김 or 사용자 완료
         this.state = 'result';
         cancelAnimationFrame(this.timerRef);
         document.getElementById('q-type').innerText = "DONE";
-        document.getElementById('mic-status').innerText = "3초 후 자동 닫힘";
         document.getElementById('mic-status').className = "";
-        
-        setTimeout(() => {
-            if(this.active) this.scheduleNext();
-        }, 3000);
+
+        if (auto) {
+            // 타이머 모드: 바로 다음 문제
+            this.showQuestion();
+        } else {
+            document.getElementById('mic-status').innerText = "다음 문제로 넘어갑니다.";
+            // 연속 모드는 즉시, 게임 모드는 약간 대기
+            const waitTime = (this.mode === 'practice') ? 500 : 3000;
+            setTimeout(() => {
+                if(this.active) this.scheduleNext();
+            }, waitTime);
+        }
     }
 
     handleTouch() {
+        // 연습모드(시간)은 터치 무시
+        if (this.mode === 'practice' && this.practiceType === 'timer') return;
+        
         if (this.state === 'question') this.startAnswering();
         else if (this.state === 'answering') this.finishAnswering();
     }
 }
 
 /* ------------------------------------------------------------------
-   5. UI 및 앱 컨트롤러
+   4. UI 및 앱 컨트롤러
 ------------------------------------------------------------------ */
 const ui = {
     toggleProblemSelector: function(show) {
         document.getElementById('problem-selector').style.display = show ? 'block' : 'none';
+    },
+    toggleTimerSetting: function(show) {
+        document.getElementById('timer-input-area').style.display = show ? 'block' : 'none';
     },
     switchTab: function(tab) {
         const tabPrev = document.getElementById('tab-prev');
@@ -841,7 +850,6 @@ const ui = {
     },
     renderList: function(id, list) {
         const container = document.getElementById(id);
-        // 기본 체크 해제 상태
         container.innerHTML = list.map(q => `
             <label class="problem-item">
                 <input type="checkbox" value="${q}">
@@ -869,30 +877,77 @@ const tracker = new TrackerGame('game-canvas');
 const quiz = new QuizManager();
 
 const app = {
+    mode: 'game', // 'game' or 'practice'
+
     init: function() {
         ui.renderList('list-prev', QUESTIONS_PREV);
         ui.renderList('list-oral', QUESTIONS_ORAL);
     },
+    selectMode: function(mode) {
+        this.mode = mode;
+        document.getElementById('main-menu').style.display = 'none';
+        document.getElementById('start-screen').style.display = 'flex';
+
+        // 모드에 따른 UI 조정
+        if (mode === 'game') {
+            document.getElementById('setting-title').innerText = "게임 모드 설정";
+            document.getElementById('settings-game').style.display = 'block';
+            document.getElementById('settings-practice').style.display = 'none';
+        } else {
+            document.getElementById('setting-title').innerText = "연습 모드 설정";
+            document.getElementById('settings-game').style.display = 'none';
+            document.getElementById('settings-practice').style.display = 'block';
+        }
+    },
     start: function() {
-        const diff = document.querySelector('input[name="diff"]:checked').value;
-        const useVoice = document.getElementById('use-voice').checked;
-        const useTTS = document.getElementById('use-tts').checked;
-        
         const selectedQ = ui.getSelectedQuestions();
         if (selectedQ.length === 0) {
             alert("최소 1개 이상의 문제를 선택해주세요.");
             return;
         }
 
-        quiz.setQuestions(selectedQ);
-        tracker.start(diff);
-        quiz.start(useVoice, useTTS);
-
-        document.getElementById('start-screen').style.display = 'none';
-        document.getElementById('game-over').style.display = 'none';
-        document.getElementById('game-clear').style.display = 'none';
+        // 설정 값 읽기
+        const useVoice = document.getElementById('use-voice').checked;
+        const useTTS = document.getElementById('use-tts').checked;
         
-        this.loop();
+        let practiceType = 'continuous';
+        let practiceInterval = 60;
+
+        if (this.mode === 'practice') {
+            practiceType = document.querySelector('input[name="p-mode"]:checked').value;
+            practiceInterval = parseInt(document.getElementById('p-interval').value) || 60;
+        }
+
+        // 화면 전환
+        document.getElementById('start-screen').style.display = 'none';
+        
+        // 레이아웃 조정
+        const topScreen = document.getElementById('top-screen');
+        const bottomScreen = document.getElementById('bottom-screen');
+
+        if (this.mode === 'game') {
+            topScreen.style.display = 'flex';
+            topScreen.style.flex = '1';
+            bottomScreen.style.flex = '1';
+            // 게임 시작
+            const diff = document.querySelector('input[name="diff"]:checked').value;
+            tracker.start(diff);
+            this.loop();
+        } else {
+            // 연습모드: 게임 화면 숨김, 퀴즈 화면 확장
+            topScreen.style.display = 'none';
+            bottomScreen.style.height = '100%';
+        }
+
+        // 퀴즈 시작
+        quiz.setQuestions(selectedQ);
+        quiz.start({
+            mode: this.mode,
+            practiceType: practiceType,
+            practiceInterval: practiceInterval,
+            useVoice: useVoice,
+            useTTS: useTTS
+        });
     },
     loop: function() {
         if (!tracker.active) return;
@@ -911,32 +966,35 @@ const app = {
         document.getElementById('game-clear').style.display = 'flex';
     },
     restartGame: function() {
-        const useVoice = document.getElementById('use-voice').checked;
-        const useTTS = document.getElementById('use-tts').checked;
+        // 현재 설정 그대로 재시작
         document.getElementById('game-clear').style.display = 'none';
         
-        tracker.active = true;
-        tracker.health = 100; 
-        quiz.start(useVoice, useTTS);
-        this.loop();
+        if (this.mode === 'game') {
+            tracker.start(tracker.difficulty);
+            this.loop();
+        }
+        
+        // 퀴즈 재설정 (이미 선택된 문제셋은 유지)
+        quiz.start({
+            mode: this.mode,
+            practiceType: quiz.practiceType,
+            practiceInterval: quiz.practiceInterval,
+            useVoice: quiz.useVoice,
+            useTTS: quiz.useTTS
+        });
     }
 };
 
 // 초기화 실행
 app.init();
 
-new TouchPad('touchpad-area', 'touch-feedback', (x, y) => {
-    tracker.setInput(x, y);
-});
-
-document.getElementById('quiz-area').addEventListener('mousedown', () => quiz.handleTouch());
-document.getElementById('quiz-area').addEventListener('touchstart', (e) => {
+// 퀴즈 영역 터치 바인딩
+const quizArea = document.getElementById('quiz-area');
+quizArea.addEventListener('mousedown', () => quiz.handleTouch());
+quizArea.addEventListener('touchstart', (e) => {
     e.preventDefault();
     quiz.handleTouch();
 });
-
-// 버튼 연결
-document.querySelector('.btn-start').onclick = () => app.start();
 
 </script>
 </body>
