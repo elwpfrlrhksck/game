@@ -1,1254 +1,774 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>Focus Trainer: Enhanced Voice</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #000;
-            color: white;
-            font-family: 'Pretendard', 'Malgun Gothic', sans-serif;
-            touch-action: none;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh; 
-            height: 100dvh; 
-            width: 100vw;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>구술 퀴즈 트레이너</title>
+  <style>
+    :root {
+      --bg: #050607;
+      --panel: #14171c;
+      --panel-2: #1f242c;
+      --line: #343b46;
+      --text: #f4f7fb;
+      --muted: #a7b0bd;
+      --accent: #00e676;
+      --accent-2: #00d4ff;
+      --warning: #ffd54f;
+      --danger: #ff5252;
+      --shadow: 0 20px 45px rgba(0,0,0,.38);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      min-height: 100%;
+      background: radial-gradient(circle at top, #18202a 0, var(--bg) 48%, #000 100%);
+      color: var(--text);
+      font-family: 'Pretendard', 'Malgun Gothic', system-ui, -apple-system, sans-serif;
+      overscroll-behavior: none;
+    }
+    body { min-height: 100dvh; }
+    button, input, select { font-family: inherit; }
+    button { touch-action: manipulation; }
+    .screen {
+      display: none;
+      width: 100%;
+      min-height: 100dvh;
+      padding: 18px;
+    }
+    .screen.active { display: flex; }
+    .center {
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .wrap {
+      width: min(980px, 100%);
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .title {
+      margin: 0;
+      font-size: clamp(32px, 8vw, 58px);
+      letter-spacing: -0.05em;
+      color: var(--accent);
+      text-align: center;
+      text-shadow: 0 0 22px rgba(0,230,118,.22);
+    }
+    .subtitle { color: var(--muted); text-align: center; margin: -6px 0 8px; }
+    .mode-grid {
+      width: min(560px, 100%);
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #05100a;
+      background: var(--accent);
+      font-size: 17px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 12px 25px rgba(0,230,118,.16);
+    }
+    .btn.secondary { color: #041015; background: var(--accent-2); box-shadow: 0 12px 25px rgba(0,212,255,.14); }
+    .btn.dark { color: var(--text); background: #303743; box-shadow: none; border: 1px solid #4a5361; }
+    .btn.warn { color: #121006; background: var(--warning); box-shadow: none; }
+    .btn.danger { color: white; background: var(--danger); box-shadow: none; }
+    .btn.small { padding: 9px 11px; font-size: 13px; border-radius: 10px; }
+    .btn:active { transform: translateY(1px); }
+    .mode-card {
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+    }
+    .mode-card span { font-size: 13px; color: rgba(0,0,0,.72); font-weight: 600; }
+    .mode-card.dark span { color: var(--muted); }
+    .panel {
+      background: rgba(20,23,28,.94);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .row.between { justify-content: space-between; }
+    .section-title {
+      margin: 8px 0 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+      color: var(--accent-2);
+      font-size: 14px;
+      font-weight: 800;
+    }
+    label { cursor: pointer; color: #d9dee8; }
+    .radio-row, .check-row { display:flex; gap: 14px; flex-wrap: wrap; align-items:center; }
+    input[type="radio"], input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); vertical-align: middle; }
+    input[type="text"], input[type="number"], select {
+      background: #0f1217;
+      color: var(--text);
+      border: 1px solid #3b4451;
+      border-radius: 10px;
+      padding: 10px 11px;
+      min-height: 40px;
+    }
+    input[type="number"] { width: 80px; }
+    select { min-width: 180px; }
+    .hint { color: var(--muted); font-size: 12px; line-height: 1.45; }
+    .tabs { display:flex; gap: 8px; margin-bottom: 8px; }
+    .tab {
+      flex: 1;
+      color: var(--muted);
+      background: #252b35;
+      border: 1px solid #3b4451;
+      border-radius: 12px;
+      padding: 10px 8px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .tab.active { background: #39505a; color: white; border-color: var(--accent-2); }
+    .problem-tools { display:flex; gap:8px; flex-wrap:wrap; margin: 8px 0; }
+    .problem-list {
+      display: none;
+      height: min(42dvh, 390px);
+      overflow: auto;
+      background: #0d1014;
+      border: 1px solid #333b46;
+      border-radius: 14px;
+      padding: 7px;
+    }
+    .problem-list.active { display:block; }
+    .problem-item {
+      display:flex;
+      gap: 9px;
+      align-items:flex-start;
+      padding: 9px 8px;
+      border-bottom: 1px solid #252b35;
+      font-size: 13px;
+      line-height: 1.35;
+      word-break: keep-all;
+    }
+    .problem-item:last-child { border-bottom: 0; }
+    .problem-item input { flex: 0 0 auto; margin-top: 1px; }
+    .mode-only { display:none; }
+    .mode-only.active { display:block; }
 
-        #ds-container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            background: #111;
-            box-sizing: border-box;
-        }
+    /* 퀴즈 화면 */
+    #quiz-screen, #practice-screen { padding: 12px; }
+    .study-shell {
+      width: min(940px, 100%);
+      min-height: calc(100dvh - 24px);
+      margin: 0 auto;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
+    }
+    .study-header {
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 8px;
+      background: rgba(20,23,28,.9);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+    }
+    .counter { color: var(--accent); font-weight: 900; font-variant-numeric: tabular-nums; }
+    .badge {
+      color: var(--muted);
+      border: 1px solid #3c4653;
+      background: #171b22;
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .card-area {
+      flex: 1;
+      min-height: 0;
+      perspective: 1400px;
+      display:flex;
+    }
+    .flip-card {
+      position: relative;
+      width: 100%;
+      min-height: 0;
+      flex: 1;
+      transform-style: preserve-3d;
+      transition: transform .42s ease;
+      cursor: pointer;
+    }
+    .flip-card.flipped { transform: rotateY(180deg); }
+    .face {
+      position:absolute;
+      inset:0;
+      backface-visibility:hidden;
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: var(--shadow);
+      background: linear-gradient(145deg, #1d2530, #0f1218);
+      display:flex;
+      flex-direction:column;
+      min-height: 0;
+      overflow:hidden;
+    }
+    .face.back {
+      transform: rotateY(180deg);
+      background: linear-gradient(145deg, #10251b, #0d1210);
+      border-color: rgba(0,230,118,.35);
+    }
+    .face-top {
+      flex: 0 0 auto;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap: 8px;
+      padding: 14px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.09);
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 800;
+    }
+    .card-content {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: clamp(18px, 4vw, 36px);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      text-align:center;
+      white-space: pre-line;
+      line-height: 1.48;
+      word-break: keep-all;
+    }
+    #quiz-question { font-size: clamp(24px, 6vw, 48px); font-weight: 900; letter-spacing: -0.045em; }
+    #quiz-answer {
+      font-size: clamp(16px, 3.2vw, 28px);
+      font-weight: 800;
+      color: #e9fff2;
+      text-align: left;
+      justify-content:flex-start;
+      align-items:flex-start;
+    }
+    .nav-row { display:grid; grid-template-columns: 1fr 1.2fr 1fr; gap: 8px; }
+    .nav-row.two { grid-template-columns: 1fr 1fr; }
+    .bottom-actions { display:flex; gap: 8px; flex-wrap:wrap; justify-content:center; }
 
-        /* === 상단 화면 (게임) flex:2 === */
-        #top-screen {
-            flex: 2; 
-            position: relative;
-            background: #000;
-            border-bottom: 2px solid #333;
-            overflow: hidden;
-            margin: 5px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            display: flex; 
-            flex-direction: column;
-        }
-
-        canvas#game-canvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-            touch-action: none;
-        }
-
-        #hp-bar-container {
-            position: absolute;
-            top: 10px; left: 10px; right: 10px;
-            height: 8px;
-            background: #330000;
-            border: 1px solid #666;
-            border-radius: 4px;
-            z-index: 10;
-        }
-        #hp-bar {
-            width: 100%; height: 100%;
-            background: linear-gradient(to right, #ff3333, #00ff00);
-            transition: width 0.1s linear;
-        }
-
-        /* 게임 모드 나가기 버튼 */
-        #btn-game-exit {
-            position: absolute;
-            top: 25px; 
-            right: 10px;
-            background: rgba(68, 68, 68, 0.8);
-            color: white;
-            border: 1px solid #666;
-            padding: 5px 10px;
-            border-radius: 4px;
-            font-size: 12px;
-            cursor: pointer;
-            z-index: 50;
-        }
-
-        /* === 하단 화면 (퀴즈) flex:1 === */
-        #bottom-screen {
-            flex: 1;
-            position: relative;
-            background: #1a1a1a;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 5px; 
-            margin: 5px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            transition: flex 0.3s;
-        }
-
-        /* 퀴즈 영역 */
-        #quiz-area {
-            width: 100%;
-            height: 100%;
-            background: #222;
-            border: 1px solid #555;
-            border-radius: 8px;
-            padding: 10px; 
-            box-sizing: border-box;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            position: relative;
-            pointer-events: auto; 
-            z-index: 20;
-        }
-
-        /* 연습모드 나가기 버튼 */
-        #btn-practice-exit {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            background: #444;
-            color: white;
-            border: 1px solid #666;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            cursor: pointer;
-            z-index: 50;
-            display: none; 
-        }
-
-        .q-type { color: #aaa; font-size: 12px; margin-bottom: 5px; font-weight: bold; }
-        .q-text { color: white; font-size: 18px; font-weight: bold; line-height: 1.3; word-break: keep-all; flex: 1; display: flex; align-items: center; justify-content: center; overflow-y: auto; }
-        .q-answer { color: #00ff00; font-size: 16px; margin-top: 5px; font-weight: bold; display: none; }
-        .q-timer { color: #00ffff; font-size: 20px; margin-top: 5px; font-family: monospace; display: none;}
-        
-        #mic-status { font-size: 11px; color: #666; margin-top: 5px; width: 100%; }
-        .listening { color: #ff5555 !important; animation: pulse 1s infinite; }
-
-        /* 오버레이 */
-        .overlay {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 100;
-            overflow-y: auto;
-        }
-        #game-over, #game-clear, #start-screen, #main-menu { z-index: 200; }
-
-        .btn-start {
-            padding: 15px 30px;
-            font-size: 18px;
-            background: #00ff00;
-            color: black;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            margin: 10px;
-            width: 80%;
-            max-width: 300px;
-        }
-        .btn-mode {
-            background: #00ffff; 
-            color: black; 
-            height: 80px; 
-            font-size: 20px;
-            line-height: 1.2;
-        }
-        .mode-desc {
-            font-size: 12px; 
-            font-weight: normal; 
-            color: #444;
-            display: block;
-            margin-top: 5px;
-        }
-        .btn-retry { background: #ff3333; color: white; }
-        .btn-sub { background: #444; color: white; font-size: 14px; }
-
-        /* 설정 UI */
-        .settings-box {
-            width: 90%;
-            max-width: 500px;
-            background: #222;
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            max-height: 70vh;
-            overflow-y: auto;
-        }
-        
-        .section-title { color: #00ffff; font-size: 14px; margin: 15px 0 5px 0; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        .radio-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
-        .radio-horizontal { flex-direction: row; justify-content: space-between; }
-        
-        .checkbox-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
-        label { display: flex; align-items: center; gap: 5px; cursor: pointer; color: #ddd; font-size: 13px; }
-        
-        .desc-text { font-size: 11px; color: #888; margin-left: 25px; margin-bottom: 5px; display: block;}
-
-        /* 문제 선택기 */
-        #problem-selector {
-            display: none;
-            width: 100%;
-        }
-        .tab-container { display: flex; border-bottom: 1px solid #444; margin-bottom: 10px; }
-        .tab { flex: 1; padding: 10px; text-align: center; cursor: pointer; background: #333; color: #888; font-size: 13px;}
-        .tab.active { background: #555; color: white; font-weight: bold; }
-        
-        .problem-list {
-            max-height: 150px;
-            overflow-y: auto;
-            background: #111;
-            padding: 5px;
-            border: 1px solid #444;
-        }
-        .problem-item {
-            display: flex;
-            align-items: flex-start;
-            padding: 8px;
-            border-bottom: 1px solid #333;
-            font-size: 12px;
-            text-align: left;
-        }
-        .problem-item input { margin-right: 10px; margin-top: 3px; flex-shrink: 0; width: 16px; height: 16px; }
-
-        .mode-specific { display: none; }
-        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
-    </style>
-<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=10981"></script>
+    /* 연습 화면 */
+    .practice-card {
+      flex: 1;
+      min-height: 0;
+      display:flex;
+      flex-direction:column;
+      border-radius:24px;
+      background: linear-gradient(145deg, #1d2530, #0f1218);
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .practice-main {
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      align-items:center;
+      gap: 14px;
+      padding: clamp(18px, 4vw, 34px);
+      overflow:auto;
+    }
+    #practice-question {
+      font-size: clamp(24px, 5.4vw, 44px);
+      font-weight:900;
+      text-align:center;
+      line-height:1.42;
+      word-break:keep-all;
+      white-space:pre-line;
+    }
+    #practice-answer {
+      display:none;
+      width:100%;
+      max-height:45dvh;
+      overflow:auto;
+      white-space:pre-line;
+      text-align:left;
+      color:#e8fff1;
+      background:rgba(0,230,118,.08);
+      border:1px solid rgba(0,230,118,.22);
+      border-radius:16px;
+      padding:16px;
+      font-size:clamp(15px, 3vw, 22px);
+      line-height:1.55;
+      font-weight:750;
+    }
+    .timer { font-size: 32px; font-family: ui-monospace, Consolas, monospace; color: var(--accent-2); font-weight:900; }
+    @media (max-width: 560px) {
+      .screen { padding: 10px; }
+      .panel { padding: 12px; }
+      .row.between { align-items: stretch; }
+      .nav-row { grid-template-columns: 1fr 1fr; }
+      .nav-row .wide { grid-column: 1 / -1; order: -1; }
+      .study-header { font-size: 13px; }
+      .card-content { padding: 20px; }
+    }
+  </style>
+<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=12278"></script>
 </head>
 <body>
-
-<div id="ds-container">
-    <div id="top-screen">
-        <canvas id="game-canvas"></canvas>
-        <div id="hp-bar-container"><div id="hp-bar"></div></div>
-        <button id="btn-game-exit" onclick="location.reload()">나가기</button>
-        
-        <div id="game-over" class="overlay" style="display:none;">
-            <h1 style="color:red">훈련 실패</h1>
-            <p>영역 이탈</p>
-            <button class="btn-start btn-retry" onclick="location.reload()">처음으로</button>
-        </div>
-        
-        <div id="game-clear" class="overlay" style="display:none;">
-            <h1 style="color:#00ff00">완료</h1>
-            <p>모든 문제 해결</p>
-            <div style="display:flex; flex-direction:column; width:100%; align-items:center;">
-                <button class="btn-start" onclick="app.restartGame()">다시 시작</button>
-                <button class="btn-start btn-sub" onclick="location.reload()">홈으로</button>
-            </div>
-        </div>
+  <main id="menu-screen" class="screen active center">
+    <h1 class="title">구술 퀴즈</h1>
+    <p class="subtitle">기출·속도 문제를 선택해서 퀴즈/연습으로 돌립니다.</p>
+    <div class="mode-grid">
+      <button class="btn mode-card" data-open-mode="quiz">🃏 퀴즈 모드<span>문제 탭 → 답변 확인 → 이전/다음</span></button>
+      <button class="btn secondary mode-card" data-open-mode="practice">📚 연습 모드<span>문제 보고 구술 연습, 필요 시 답 보기</span></button>
     </div>
+  </main>
 
-    <div id="bottom-screen">
-        <div id="quiz-area">
-            <button id="btn-practice-exit" onclick="location.reload()">나가기</button>
-            
-            <div class="q-type" id="q-type">READY</div>
-            <div class="q-text" id="q-text">모드 선택 중...</div>
-            <div class="q-timer" id="q-timer">00.00</div>
-            <div class="q-answer" id="q-answer">정답</div>
-            <div id="mic-status"></div>
+  <section id="settings-screen" class="screen">
+    <div class="wrap">
+      <div class="row between">
+        <h2 id="setting-title" style="margin:0;color:var(--accent);">설정</h2>
+        <button class="btn dark small" id="btn-home">홈으로</button>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">문제 출제 방식</div>
+        <div class="radio-row">
+          <label><input type="radio" name="q-mode" value="all" checked> 전체 랜덤</label>
+          <label><input type="radio" name="q-mode" value="select"> 문제 선택</label>
         </div>
-    </div>
+        <p class="hint">12번 속도 문제는 한 세트에 3~5개, 50번 ATP 속도 문제는 2~3개만 자동으로 섞입니다.</p>
+      </div>
 
-    <div id="main-menu" class="overlay">
-        <h1 style="color:#00ff00; margin-bottom: 20px;">Focus Trainer</h1>
-        <button class="btn-start btn-mode" onclick="app.selectMode('game')">
-            🎮 게임 모드
-            <span class="mode-desc">추적 게임 + 구술 훈련</span>
-        </button>
-        <button class="btn-start btn-mode" style="background:#ffcc00;" onclick="app.selectMode('practice')">
-            📚 연습 모드
-            <span class="mode-desc">문제 풀이 집중 (게임 X)</span>
-        </button>
-    </div>
-
-    <div id="start-screen" class="overlay" style="display:none;">
-        <h2 style="color:#00ff00; margin: 15px 0;" id="setting-title">설정</h2>
-        
-        <div class="settings-box">
-            
-            <div class="section-title">문제 출제 방식</div>
-            <div class="radio-group radio-horizontal">
-                <label><input type="radio" name="q-mode" value="all" checked onchange="ui.toggleProblemSelector(false)"> 전체 랜덤</label>
-                <label><input type="radio" name="q-mode" value="select" onchange="ui.toggleProblemSelector(true)"> 문제 선택</label>
-            </div>
-            
-            <div id="problem-selector">
-                <div class="tab-container">
-                    <div id="tab-oral" class="tab active" onclick="ui.switchTab('oral')">[구술] 문제</div>
-                    <div id="tab-speed" class="tab" onclick="ui.switchTab('speed')">[속도] 문제</div>
-                </div>
-                <div id="list-oral" class="problem-list"></div>
-                <div id="list-speed" class="problem-list" style="display:none;"></div>
-                <div style="margin-top:10px; display:flex; gap:10px;">
-                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(true)">전체 선택</button>
-                    <button class="btn-sub" style="padding:5px 10px; width:auto;" onclick="ui.selectAll(false)">전체 해제</button>
-                </div>
-            </div>
-
-            <div id="settings-game" class="mode-specific">
-                <div class="section-title">난이도 (공 추적 속도)</div>
-                <div class="radio-group radio-horizontal">
-                    <label><input type="radio" name="diff" value="easy"> 쉬움 (1.0)</label>
-                    <label><input type="radio" name="diff" value="normal" checked> 보통 (2.0)</label>
-                    <label><input type="radio" name="diff" value="hard"> 어려움 (3.0)</label>
-                </div>
-                <p class="desc-text" style="line-height:1.4;">
-                * 쉬움: 직선 이동 (방향 전환 X)<br>
-                * 보통: 3초 이상 이동 후 방향 전환
-                </p>
-            </div>
-
-            <div id="settings-practice" class="mode-specific">
-                <div class="section-title">연습 방식 설정</div>
-                <div class="radio-group">
-                    <label>
-                        <input type="radio" name="p-mode" value="continuous" checked onchange="ui.toggleTimerSetting(false)"> 
-                        연속 모드
-                    </label>
-                    <span class="desc-text">답변 완료 시 즉시 다음 문제</span>
-                    
-                    <label>
-                        <input type="radio" name="p-mode" value="timer" onchange="ui.toggleTimerSetting(true)"> 
-                        시간 설정 모드
-                    </label>
-                    <span class="desc-text">정해진 시간마다 문제 자동 변경</span>
-                </div>
-
-                <div id="timer-input-area" style="display:none; margin-top:10px; border-top:1px dashed #444; padding-top:10px;">
-                    <label style="font-size:16px;">
-                        ⏱️ 간격 설정: 
-                        <input type="number" id="p-interval" value="1" style="width:60px; background:#333; color:white; border:1px solid #555; padding:5px; margin:0 10px;"> 
-                        분
-                    </label>
-                </div>
-            </div>
-
-            <div class="section-title">음성 / TTS 설정</div>
-            <div class="checkbox-row">
-                <label><input type="checkbox" id="use-voice" checked> 내 목소리 인식 (Chrome)</label>
-            </div>
-            <div class="checkbox-row">
-                <label><input type="checkbox" id="use-tts" checked> 문제 읽어주기 (TTS)</label>
-            </div>
+      <div id="selector-panel" class="panel" style="display:none;">
+        <div class="row between">
+          <div class="section-title" style="margin:0; border:0; padding:0;">문제 선택</div>
+          <span id="selected-count" class="badge">선택 0개</span>
         </div>
+        <div class="tabs" style="margin-top:10px;">
+          <button class="tab active" data-tab="기출">[기출] 문제</button>
+          <button class="tab" data-tab="속도">[속도] 문제</button>
+        </div>
+        <div class="problem-tools">
+          <button class="btn dark small" id="btn-active-all">현재 탭 전체 선택</button>
+          <button class="btn dark small" id="btn-active-none">현재 탭 전체 해제</button>
+          <button class="btn dark small" id="btn-last-load">마지막 선택 불러오기</button>
+        </div>
+        <div id="list-기출" class="problem-list active"></div>
+        <div id="list-속도" class="problem-list"></div>
 
-        <button class="btn-start" onclick="app.start()">시작하기</button>
-        <button class="btn-start btn-sub" onclick="location.reload()">뒤로 가기</button>
+        <div class="section-title">선택 목록 저장 / 불러오기</div>
+        <div class="row">
+          <input id="preset-name" type="text" placeholder="저장 이름" />
+          <button class="btn small" id="btn-save-preset">저장</button>
+          <select id="preset-select"><option value="">저장된 목록 없음</option></select>
+          <button class="btn secondary small" id="btn-load-preset">불러오기</button>
+          <button class="btn danger small" id="btn-delete-preset">삭제</button>
+        </div>
+      </div>
+
+      <div id="practice-settings" class="panel mode-only">
+        <div class="section-title">연습 방식 설정</div>
+        <div class="radio-row">
+          <label><input type="radio" name="p-mode" value="continuous" checked> 연속 모드</label>
+          <label><input type="radio" name="p-mode" value="timer"> 시간 설정 모드</label>
+        </div>
+        <div id="timer-row" class="row" style="display:none; margin-top:10px;">
+          <label>⏱️ 간격 <input type="number" id="p-interval" min="1" value="1"> 분</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-title">TTS 설정</div>
+        <div class="check-row">
+          <label><input type="checkbox" id="use-tts" checked> 문제 읽어주기</label>
+        </div>
+      </div>
+
+      <button class="btn" id="btn-start">시작하기</button>
     </div>
-</div>
+  </section>
 
-<script>
-/* ------------------------------------------------------------------
-   1. 데이터
------------------------------------------------------------------- */
-const QUESTIONS_ORAL = [
-    "1. 공기제동시험을 시행하는 경우는 언제인가?",
-    "2. 제동감도시험을 생략할 수 있는 경우는 언제인가?",
-    "3. 지도표와 지도권의 차이는?",
-    "4. 1폐색구간에 2개 열차를 운전할 수 있는 경우는 언제인가?",
-    "5-1. 복선 자동폐색구간에서 통신식에 의하는 경우는 언제인가?",
-    "5-2. 통신식 시행시의 운전법은 무엇인가?",
-    "6. 자동폐색식과 지도통신식을 병용시의 운전취급법은 무엇인가?",
-    "7-1. 지령식 정의",
-    "7-2. 지령식 운전취급법",
-    "8. 전령법 운전취급법은 무엇인가?",
-    "9. 구원열차 요구시의 취급법은?",
-    "10. 정거장에서 열차를 동시에 진입 및 진출 가능한 경우는 언제인가?",
-    "11. 열차제어장치 차단운전 승인번호를 부여하여 열차를 운행시킬 수 있는 경우에 대하여 설명하시오.",
-    "13. 주의신호 현시 시 제한속도 이상으로 운전 가능한 경우는 언제인가?",
-    "14. 기적 고장시의 운전법은 무엇인가?",
-    "15. 침수된 선로를 운전 시 열차 운전법은?",
-    "16. 총괄제어시 피제어차에서의 기기취급과 운전보안장치 취급에 대해 설명하시오.",
-    "17. 총괄제어시 피제어차를 제어차로 만드는 방법은 무엇인가?",
-    "18-1. 26-F제어변의 기능은 무엇인가?",
-    "18-2. 26-F제어변 고장시의 현상은 무엇인가?",
-    "19-1. J-1중계변의 기능은 무엇인가?",
-    "19-2. J-1중계변 고장시의 현상은 무엇인가?",
-    "20. 자변으로 제동 체결시 체결과정은 어떻게 되나요?",
-    "21. 단변으로 제동 체결시 체결과정은 어떻게 되나요?",
-    "22. A-1충기차단안내변 동작 원인과 현상, 조치방법은 무엇인가?",
-    "23-1. 주공기압력이 9키로까지 상승 불능시 원인은 무엇인가?",
-    "23-2. 공기압축기 계속 무부하운전시 현상 및 조치법은 무엇인가?",
-    "23-3. 제습기 바이패스 조치 시행 후 주공기압력 상승 불능시 조치방법은 무엇인가?",
-    "24. 디젤기관차의 기관을 정지시키는 방법은 어떤 것들이 있는가?",
-    "25. 가감간 위치별 기관조속기 속도조정전자변 여자는?",
-    "26. 여자제한 경보의 현상과 조치방법은 무엇인가?",
-    "27. 기관회전속도는 정상이나 주발전기 출력이 나지 않은 경우는 언제인가?",
-    "28-1. 기관제어패널의 ‘조속기중지등’점등 시의 현상은 무엇인가?",
-    "28-2. 기관제어패널의 ‘조속기중지등’점등 원인은 무엇인가?",
-    "29-1. 기관온도스위치 기능시험법은 무엇인가요?",
-    "29-2. 기관온도스위치 TA, TB, ETS가 동작하는 온도와 냉각선풍기가 돌아가는 온도는 얼마인가?",
-    "29-3. 기관과열이 발생하는 온도는 얼마인가?",
-    "30. 기관제어패널의 ‘무충전/무전원등(NVR등)’ 점등 시 확인할 것은 무엇인가?",
-    "31-1. AN29 경보기모듈 점등 시기는 무엇인가?",
-    "31-2. AN29 경보기모듈 점검방법은 무엇인가?",
-    "32. TR16 전이제어모듈 기능시험법과 발전제동의 원리는 무엇인가?",
-    "33. ATS, ATC, ATP, 열차방호장치는 각각 무엇인가?",
-    "34. 열차방호장치 동작시 운전취급법은 무엇인가?",
-    "35. 열차방호장치 차단 방법은 무엇인가?",
-    "36. 열차방호장치 차단콕크의 위치는?",
-    "37. ATP 차단 방법은 무엇인가?",
-    "38. ATP 재기동 방법은 무엇인가?",
-    "39. 신호보안장치 장애발생시 기관사의 조치는 무엇인가?",
-    "40. ATP 운전모드 8가지는 무엇인가?",
-    "41-1. ATP 레벨STM의 모드에는 어떤 것들이 있는가?",
-    "41-2. ATP 레벨STM의 입환모드는 언제 사용하는가?",
-    "41-3. ATP 레벨STM의 공사모드는 언제 사용하는가?",
-    "41-4. ATP 레벨STM의 특수모드는 언제 사용하는가?",
-    "42. 열차 퇴행시의 ATP 모드 선택은 어떻게 하는가?",
-    "43. ATP 비장착모드(레벨제로)를 사용하는 경우는 언제인가?",
-    "44. ATP 운행시 특수운전기능 활성화시 이동거리제한과 활성화시간제한",
-    "45. 디젤기관차에 설치된 전동기의 종류",
-    "46. ARL 설치차량의 접지 발생시 복귀방법",
-    "47. 저유압 기관정지장치가 동작하는 경우",
-    "48. 디젤기관차 저압계통의 종류",
-    "49-1. 기관전단부에 있는 치차의 종류",
-    "49-2. 부속장치구동치차와 반대방향으로 회전하는 치차의 종류",
-];
+  <section id="quiz-screen" class="screen">
+    <div class="study-shell">
+      <div class="study-header">
+        <span class="counter" id="quiz-counter">1 / 1</span>
+        <span class="badge" id="quiz-category">기출</span>
+        <button class="btn dark small" id="btn-quiz-menu">메뉴</button>
+      </div>
+      <div class="card-area">
+        <div id="flip-card" class="flip-card" role="button" aria-label="카드 뒤집기">
+          <div class="face front">
+            <div class="face-top"><span>QUESTION</span><span>탭하면 답 보기</span></div>
+            <div id="quiz-question" class="card-content">문제</div>
+          </div>
+          <div class="face back">
+            <div class="face-top"><span>ANSWER</span><span>탭하면 문제로 돌아가기</span></div>
+            <div id="quiz-answer" class="card-content">답변</div>
+          </div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn dark" id="btn-prev">◀ 이전</button>
+        <button class="btn wide" id="btn-flip">답 보기 / 문제 보기</button>
+        <button class="btn dark" id="btn-next">다음 ▶</button>
+      </div>
+      <div class="bottom-actions">
+        <button class="btn secondary small" id="btn-speak-quiz">현재 문제 읽기</button>
+        <button class="btn warn small" id="btn-reshuffle-quiz">다시 섞기</button>
+      </div>
+    </div>
+  </section>
 
-const QUESTIONS_SPEED = [
-    "12-1. 대용폐색방식 반대선 운전 시 제한속도는 얼마인가?",
-    "12-2. 서행감시원 배치 시 서행속도는 얼마인가?",
-    "12-3. 기적고장 시 제한속도는 얼마인가?",
-    "12-4. 재해우려지역 통과속도는 얼마인가?",
-    "12-5. 곡선 400R의 제한속도는 얼마인가?",
-    "12-6. 곡선 500R의 제한속도는 얼마인가?",
-    "12-7. 곡선 600R의 제한속도는 얼마인가?",
-    "12-8. 곡선 700R의 제한속도는 얼마인가?",
-    "12-9. 곡선 800R의 제한속도는 얼마인가?",
-    "12-10. 곡선 900R의 제한속도는 얼마인가?",
-    "12-11. 곡선 1000R의 제한속도는 얼마인가?",
-    "12-12. 곡선 1200R 이상의 제한속도는 얼마인가?",
-    "12-13. 선로전환기 철차번호 08번 편개의 제한속도는 얼마인가?",
-    "12-14. 선로전환기 철차번호 10번 편개의 제한속도는 얼마인가?",
-    "12-15. 선로전환기 철차번호 12번 편개의 제한속도는 얼마인가?",
-    "12-16. 선로전환기 철차번호 15번 편개의 제한속도는 얼마인가?",
-    "12-17. 관제사 승인 있을 때 열차 퇴행 제한속도는 얼마인가?",
-    "12-18. 위험물 수송열차가 관제사 승인 있을 때 퇴행하는 경우 제한속도는 얼마인가?",
-    "12-19. 관제사 승인 없을 때 열차 퇴행 제한속도는 얼마인가?",
-    "12-20. 장내·출발 진행수신호 운전 시 제한속도는 얼마인가?",
-    "12-21. 수신호등에 의한 운전 시 제한속도는 얼마인가?",
-    "12-22. 선로전환기 대향운전 시 제한속도는 얼마인가?",
-    "12-23. 추진운전 시 제한속도는 얼마인가?",
-    "12-24. 차량입환 시 제한속도는 얼마인가?",
-    "12-25. 뒤 운전실 운전 시 제한속도는 얼마인가?",
-    "12-26. 입환신호기에 의한 열차 출발 시 제한속도는 얼마인가?",
-    "12-27. 제동축비율 100%미만 80%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?",
-    "12-28. 제동축비율 100%미만 80%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?",
-    "12-29. 제동축비율 100%미만 80%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?",
-    "12-30. 제동축비율 100%미만 80%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?",
-    "12-31. 제동축비율 80%미만 60%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?",
-    "12-32. 제동축비율 80%미만 60%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?",
-    "12-33. 제동축비율 80%미만 60%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?",
-    "12-34. 제동축비율 80%미만 60%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?",
-    "12-35. 제동축비율 60%미만 40%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?",
-    "12-36. 제동축비율 60%미만 40%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?",
-    "12-37. 제동축비율 60%미만 40%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?",
-    "12-38. 제동축비율 60%미만 40%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?",
-    "12-39. 제동축비율 40%미만에서 여객열차 속도 150일 때 운전속도는 얼마인가?",
-    "12-40. 제동축비율 40%미만에서 여객열차 속도 120일 때 운전속도는 얼마인가?",
-    "12-41. 제동축비율 40%미만에서 화물열차 속도 110일 때 운전속도는 얼마인가?",
-    "12-42. 제동축비율 40%미만에서 화물열차 속도 90일 때 운전속도는 얼마인가?",
-    "12-43. 하구배 5초과~12.5이하에서 여객열차 제한속도는 얼마인가?",
-    "12-44. 하구배 5초과~12.5이하에서 화물열차 제한속도는 얼마인가?",
-    "12-45. 하구배 12.5초과~15이하에서 여객열차 제한속도는 얼마인가?",
-    "12-46. 하구배 12.5초과~15이하에서 화물열차 제한속도는 얼마인가?",
-    "12-47. 하구배 15초과~20이하에서 여객열차 제한속도는 얼마인가?",
-    "12-48. 하구배 15초과~20이하에서 화물열차 제한속도는 얼마인가?",
-    "12-49. 하구배 20초과~30이하에서 여객열차 제한속도는 얼마인가?",
-    "12-50. 하구배 20초과~30이하에서 화물열차 제한속도는 얼마인가?",
-    "12-51. 하구배 30초과~35이하에서 여객열차 제한속도는 얼마인가?",
-    "12-52. 하구배 30초과~35이하에서 화물열차 제한속도는 얼마인가?",
-    "50-1. ATP 책임모드의 제한속도는 얼마인가?",
-    "50-2. ATP 트립/트립 후 모드에서 퇴행 시 제한속도는 얼마인가?",
-    "50-3. ATP 트립/트립 후 모드에서 전도운행 시 제한속도는 얼마인가?",
-    "50-4. ATP 입환모드의 제한속도는 얼마인가?",
-    "50-5. ATP 특수운전의 제한속도는 얼마인가?",
-    "50-6. ATP 완해속도는 얼마인가?",
-    "50-7. ATP 비장착모드의 제한속도는 얼마인가?",
-    "50-8. ATP STM모드의 제한속도는 얼마인가?",
-];
+  <section id="practice-screen" class="screen">
+    <div class="study-shell">
+      <div class="study-header">
+        <span class="counter" id="practice-counter">1 / 1</span>
+        <span class="timer" id="practice-timer">00.00</span>
+        <button class="btn dark small" id="btn-practice-menu">메뉴</button>
+      </div>
+      <div class="practice-card">
+        <div class="face-top"><span id="practice-category">기출</span><span id="practice-mode-label">연속 모드</span></div>
+        <div class="practice-main">
+          <div id="practice-question">문제</div>
+          <div id="practice-answer">답변</div>
+        </div>
+      </div>
+      <div class="nav-row">
+        <button class="btn dark" id="btn-practice-prev">◀ 이전</button>
+        <button class="btn wide" id="btn-answer-toggle">답 보기</button>
+        <button class="btn dark" id="btn-practice-next">다음 ▶</button>
+      </div>
+      <div class="bottom-actions">
+        <button class="btn secondary small" id="btn-speak-practice">현재 문제 읽기</button>
+        <button class="btn warn small" id="btn-reshuffle-practice">다시 섞기</button>
+      </div>
+    </div>
+  </section>
 
-/* ------------------------------------------------------------------
-   2. 추적 게임 (Tracker)
------------------------------------------------------------------- */
-class TrackerGame {
-    constructor(canvasId) {
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
-        
-        this.player = { x: 0, y: 0, radius: 10 };
-        this.zone = { x: 0, y: 0, width: 100, height: 100, radius: 0, vx: 0, vy: 0 };
-        
-        this.difficulty = 'normal'; 
-        this.zoneSpeed = 0; 
-        this.health = 100;
-        this.active = false;
-        
-        // 시간 기반 타이머 (ms)
-        this.nextChangeTime = 0;
+  <script>
+    const BANK = [{"id": "1", "category": "기출", "question": "1. 공기제동시험을 시행하는 경우는 언제인가?", "answer": "예, -시발역에서 열차를 조성한 경우, (다만, 각종 고정편성 열차는 기능점검시 시행한다)\n-도중 역에서 열차의 맨 뒤에 차량을 연결하는 경우,\n-제동장치를 차단 및 복귀하는 경우,\n-구원열차 연결시,\n-기관사가 열차의 제동기능에 이상이 있다고 인정하는 경우입니다."}, {"id": "2", "category": "기출", "question": "2. 제동감도시험을 생략할 수 있는 경우는 언제인가?", "answer": "예, -동력차 승무원이 도중에 교대하는 여객열차,\n-기관사 2인이 승무하여 기관사간 교대하는 경우,\n-회송열차를 운전실의 변경없이 본열차에 충당하여 계속 운전하는 경우,\n-본열차를 운전실의 변경없이 회송열차에 충당하여 계속 운전하는 경우입니다."}, {"id": "3", "category": "기출", "question": "3. 지도표와 지도권의 차이는?", "answer": "예, -지도표는 적생종이 흑색문자로 1호에서 10호까지를 사용하고,\n-지도권은 백색종이 적색문자로 51호에서 100호까지를 사용합니다.\n-하나의 열차만 운행시는 지도표를 사용하고,\n-둘 이상의 열차 운행시는 마지막 열차가 지도표를 사용하고,\n-앞의 열차는 지도권을 사용합니다."}, {"id": "4", "category": "기출", "question": "4. 1폐색구간에 2개 열차를 운전할 수 있는 경우는 언제인가?", "answer": "예, -자동폐색신호기에 정지신호의 현시 있는 경우 그 폐색구간을 운전하는 경우,\n-통신 두절된 경우에 연락 등으로 단행열차를 운전하는 경우,\n-고장열차 있는 폐색구간에 구원열차를 운전하는 경우,\n-선로 불통된 폐색구간에 공사열차를 운전하는 경우,\n-폐색구간에서 열차를 분할하여 운전하는 경우,\n-열차가 있는 폐색구간에 다른 열차를 유도하여 운전하는 경우,\n-그 밖에 특수한 사유가 있는 경우 등입니다."}, {"id": "5-1", "category": "기출", "question": "5-1. 복선 자동폐색구간에서 통신식에 의하는 경우는 언제인가?", "answer": "예, -자동폐색신호기 2기 이상 고장인 경우, (다만, 구내폐색신호기는 제외합니다,)\n-출발신호기 고장 시 조작반의 궤도회로 표시로 출발신호기가 방호하는 폐색구간에 열차 없음을 확인할 수 없는 경우,\n-다른 선로의 출발신호기 취급으로 출발신호기가 방호하는 폐색구간에 열차 없음을 확인 할 수 없는 경우,\n-도중폐색신호기가 설치되지 않은 구간에서 원인을 알 수 없는 궤도회로 장애로 출발신호기에 진행 지시신호가 현시되지 않은 경우,\n-정거장 외로부터 퇴행할 열차를 운전시키는 경우입니다."}, {"id": "5-2", "category": "기출", "question": "5-2. 통신식 시행시의 운전법은 무엇인가?", "answer": "예, -관제사 운전명령번호 및 시행사유 구간 등을 확인,\n-출발신호기에 대한 진행수신호 확인,\n-출발 전 전방역장과 폐색구간내 열차없음 및 도착선에 대한 무선교신,\n-시속25키로 이하의 속도로 최외방전철기까지 운전하고,\n-도중 자동폐색신호기의 현시상태 무시하고 주의운전합니다."}, {"id": "6", "category": "기출", "question": "6. 자동폐색식과 지도통신식을 병용시의 운전취급법은 무엇인가?", "answer": "예, -운전허가증인 지도표 또는 지도권을 수령하여 번호 및 병용유무 기록 확인,\n-출발신호기 확인 출발,\n-상치신호기 현시상태에 따른 제한속도 준수,\n-전방역장과 무선교신을 통한 운전정보교환,\n-전방역장에게 운전허가증을 인계합니다."}, {"id": "7-1", "category": "기출", "question": "7-1. 지령식 정의", "answer": "예, -지령식은 CTC구간에서 관제사가 조작반으로 열차운행상태 확인이 가능하고, 운전용 통신장치 기능이 정상인 경우에 우선 적용하며 관제사의 승인에 의해 운전하는 대용폐색방식을 말한다."}, {"id": "7-2", "category": "기출", "question": "7-2. 지령식 운전취급법", "answer": "예, -지령식 시행을 통보받은 기관사는 다음 각 호에 따라야 한다.\n-운전명령사항을 승무일지에 기록한다.\n-관제사 또는 관계역장에게 재차 열차무선 통보하여 운전명령사항을 재확인한다.\n-지령식 운행종료역 도착 후 관제사 또는 역장에게 열차상태 이상유무를 보고한다."}, {"id": "8", "category": "기출", "question": "8. 전령법 운전취급법은 무엇인가?", "answer": "예, -전령자 승차 확인\n-신호기 현시상태가 정상인 경우 신호현시조건에 따라 운전\n-신호기를 사용하지 않는 경우 1km 전방까지 45키로 이하 운전\n-자동폐색신호기 정지신호 확인시 일단 정차 후 25키로 이하 운전\n-구원요구열차 50m 전방까지 운전\n-구원요구열차 50m 전방부터 전령자 또는 부기관사 유도에 의해서 운전\n-구원요구열차와 연결\n-제동시험 후 관제사 또는 최근역장의 지시에 따라 운전"}, {"id": "9", "category": "기출", "question": "9. 구원열차 요구시의 취급법은?", "answer": "예, -일단정차 후 무선전화기에 의한 방호조치,\n-관제사 또는 인접역장에게 상황보고 및 구원요구,\n-구원열차가 오는 방향에 정지수신호에 의한 열차방호 조치,\n-구원열차와 정차위치 및 운행지점에 대한 계속적인 정보교환,\n-구원기 연결 후 제동시험하고 전도운전 계속합니다."}, {"id": "10", "category": "기출", "question": "10. 정거장에서 열차를 동시에 진입 및 진출 가능한 경우는 언제인가?", "answer": "예, -안전측선, 탈선선로전환기, 탈선기가 설치된 경우,\n-열차를 유도하여 진입시킬 경우,\n-단행열차를 진입시킬 경우,\n-열차의 진입선로에 대한 출발신호기 또는 정차위치로부터 200미터 이상의 여유거리가 있는 경우\n-동일방향에서 동시에 진입하는 열차 쌍방이 정차위치를 지나서 진행할 경우 상호 접촉되는 배선에서는 그 정차위치에서 100미터 이상의 여유거리가 있는 경우"}, {"id": "11", "category": "기출", "question": "11. 열차제어장치 차단운전 승인번호를 부여하여 열차를 운행시킬 수 있는 경우에 대하여 설명하시오.", "answer": "예, -열차제어장치의 고장인 경우\n-퇴행운전이나 추진운전을 하는 경우\n-대용폐색방식이나 전령법 시행으로 열차제어장치 차단운전이 필요한 경우\n-사고나 그 밖에 필요하다고 인정하는 경우"}, {"id": "13", "category": "기출", "question": "13. 주의신호 현시 시 제한속도 이상으로 운전 가능한 경우는 언제인가?", "answer": "예, -원방신호기에 주의신호가 현시되었을 때,\n-인접역 장내신호기까지 도중 폐식신호기가 없는 출발신호기,\n-신호 3현시 구간의 각선 각역의 장내신호기,\n-신호 3현시 구간의 자동폐색신호기에 주의신호 구간을 운전할 때 다음 신호기에 진행 지시신호가 현시되었다는 통보를 받았을 경우입니다."}, {"id": "14", "category": "기출", "question": "14. 기적 고장시의 운전법은 무엇인가?", "answer": "예, -관제기적이 정상일 경우에는 계속 운행할 수 있으며,\n-기적이 모두 고장이면 구원을 요구한 후 동력차를 교체할 수 있는 최근 정거장까지 30키로 이하 속도로 주의운전합니다."}, {"id": "15", "category": "기출", "question": "15. 침수된 선로를 운전 시 열차 운전법은?", "answer": "예, -레일 면까지 침수된 경우에는 그 앞쪽 지점에 일단정차 후 선로상태를 확인하여,\n-통과가 가능하다고 인정될 때는 15키로 이하의 속도로 주의운전하고,\n-레일면을 초과하여 침수시는 운전을 중지하고 관제사의 지시에 따릅니다. (측정방법은 무엇인가?라고 물으면 ‘목측’)"}, {"id": "16", "category": "기출", "question": "16. 총괄제어시 피제어차에서의 기기취급과 운전보안장치 취급에 대해 설명하시오.", "answer": "예, -자변 핸들취거위치,\n-단변 운전위치,\n-삼방차단변 차단위치,\n-MU-2A중련변 보조 6-26위치,\n-ATP 차단, 운전경계장치 차단, 열차방호장치 차단,\n-총괄제어용 전조등제어스위치 4위치로 하고,\n-역전간을 중립위치에서 취거합니다."}, {"id": "17", "category": "기출", "question": "17. 총괄제어시 피제어차를 제어차로 만드는 방법은 무엇인가?", "answer": "예, -자변 운전위치,\n-단변 제동위치,\n-삼방차단변 여객 또는 화물위치,\n-MU-2A중련변 본무 또는 무화위치,\n-ATP ON, 운전경계장치 ON, 열차방호장치 ON,\n-총괄제어용 전조등제어스위치 2위치로 하고,\n-역전간을 장착 후 제동시험 등의 기능시험을 합니다."}, {"id": "18-1", "category": "기출", "question": "18-1. 26-F제어변의 기능은 무엇인가?", "answer": "예, -26-F제어변은 객화차의 삼동변과 같은 기능을 합니다.\n-자변 제어로 보조공기를 J-1중계변에 공급/배출시켜 제동과 완해를 제어하고,\n-자변 상용제동 체결 후 단변 신속완해 시 신속완해가 되게 합니다."}, {"id": "18-2", "category": "기출", "question": "18-2. 26-F제어변 고장시의 현상은 무엇인가?", "answer": "예, -26-F제어변 고장시에는 자변에 의한 제동 제어와 신속완해가 불가능합니다."}, {"id": "19-1", "category": "기출", "question": "19-1. J-1중계변의 기능은 무엇인가?", "answer": "예, -단변으로 제동체결시 주공기가, 자변으로 제동체결시 보조공기가 작용실에 공급되어 상부에 대기중인 주공기를 제동통에 보내어 제동을 체결하거나,\n-단변 및 자변 완해위치에서 제동통의 공기를 대기로 배출하여 제동을 완해시킵니다."}, {"id": "19-2", "category": "기출", "question": "19-2. J-1중계변 고장시의 현상은 무엇인가?", "answer": "예, -단변 및 자변으로 제동제어가 불가능합니다."}, {"id": "20", "category": "기출", "question": "20. 자변으로 제동 체결시 체결과정은 어떻게 되나요?", "answer": "(「자변제동변 취급법에 대해 설명하시오」 등 감독관마다 질문이 다를 수 있음)\n예, -자변을 상용제동위치로 하면,\n-균형공기조정변에서 균형공기 감압,\n-중계변에서 제동관공기 감압되어 객화차 제동이 체결되고,\n-26-F제어변 상용변 동작,\n-보조공기가 F-1선택변과 이중역지변을 통과,\n-J-1중계변 하부작용실에 공급,\n-J-1중계변 작용피스톤 상부로 이동,\n-상부에 대기 중이던 주공기가 제동통으로 공급되어,\n-기관차의 제동이 체결됩니다."}, {"id": "21", "category": "기출", "question": "21. 단변으로 제동 체결시 체결과정은 어떻게 되나요?", "answer": "예, -단변을 제동위치로 하면,\n-대기 중이던 주공기가 공급실 진입,\n-MU-2A중련변 경유, 이중역지변 통과하여,\n-J-1중계변 하부작용실에 공급,\n-J-1중계변 작용피스톤 상부로 이동,\n-상부에 대기 중이던 주공기가 제동통으로 공급되어,\n-기관차의 제동이 체결됩니다."}, {"id": "22", "category": "기출", "question": "22. A-1충기차단안내변 동작 원인과 현상, 조치방법은 무엇인가?", "answer": "예, -동작원인은 ATS, 운전경계장치, 열차방호장치 동작, 제동관 파열, 비상제동 등으로 인한 제동관공기 급강하입니다.\n-현상은 기관회전수 유전, 주발전기 출력차단, 발전제동 무효화, 제동관 충기 차단, 자동살사, PCS등 점등이 됩니다.\n-조치는 자변 비상제동위치, 가감간 유전위치 후 동작원인 제거하고, 자변 운전위치로 하여 공기압력 확인 및 부하시험을 합니다.\n(원인, 현상, 조치법을 다 물어보거나 하나만 물어볼 수도 있으므로 질문을 잘 들을 것)"}, {"id": "23-1", "category": "기출", "question": "23-1. 주공기압력이 9키로까지 상승 불능시 원인은 무엇인가?", "answer": "예, -CCS, MVCC 동작 불능, 제습기 고장, 교류분전함 주위 주공기여과기 개방, 주공기 배수콕크 개방, 조압기 불량입니다."}, {"id": "23-2", "category": "기출", "question": "23-2. 공기압축기 계속 무부하운전시 현상 및 조치법은 무엇인가?", "answer": "예, -주공기압력이 130파운드 이하로 서서히 떨어지는 현상이 있습니다.\n-조치법은 교류분전함에 설치된 무부하차단콕크를 차단합니다.\n(만약 다른 방법은 없냐고 물으면)\n-CCR계전기 Y단자선 분리, MV-CC의 단자선 분리,\n-CCS차단콕크를 차단 후 복귀, 공기압축기 무부하변 경타가 있습니다."}, {"id": "23-3", "category": "기출", "question": "23-3. 제습기 바이패스 조치 시행 후 주공기압력 상승 불능시 조치방법은 무엇인가?", "answer": "예, -교류분전함 내 무부하차단콕크를 차단하고,\n-제1주공기통 안전변에서 공기가 빠지는 소리를 확인합니다.\n-주공기압력이 150PSI이상시 안전변이 동작하나 정상운행이 가능합니다."}, {"id": "24", "category": "기출", "question": "24. 디젤기관차의 기관을 정지시키는 방법은 어떤 것들이 있는가?", "answer": "예, -기관정지버튼을 누르거나, (운전실 기관제어패널, 좌우 연료탱크 위 등 3개 설치되어있음)\n-가감간을 정지위치로 하거나,\n-부축수동간을 무연료위치로 잡아당기거나,\n-저수위탐지장치 시험콕크를 개방하거나,\n-조속기 저유압단추를 당기는 법 등이 있습니다."}, {"id": "25", "category": "기출", "question": "25. 가감간 위치별 기관조속기 속도조정전자변 여자는?", "answer": "예, 정지위치 DV, 저유전 AV DV, 정상유전과 1단 없음, 2단 AV, 3단 CV, 4단 AV CV,\n5단 BV CV DV, 6단 AV BV CV DV, 7단 BV CV, 8단 AV BV CV입니다."}, {"id": "26", "category": "기출", "question": "26. 여자제한 경보의 현상과 조치방법은 무엇인가?", "answer": "예, -현상은 경보등은 점등 안되나 경보벨이 울리고, 기관회전수는 정상이나 주발전기 출력이 차단되는데, 총괄제어 운전시는 피제어차도 출력 차단입니다.\n-조치는 가감간을 유전위치로 내리고 50 ~ 60초 후 경보벨이 멈추면 부하시험 후 정상운전합니다."}, {"id": "27", "category": "기출", "question": "27. 기관회전속도는 정상이나 주발전기 출력이 나지 않은 경우는 언제인가?", "answer": "예, -동력접촉기 접촉불량\n-역전접촉기 접촉불량\n-로컬제어회로차단기 차단\n-모듈회로차단기 차단\n-병렬접촉기 불량"}, {"id": "28-1", "category": "기출", "question": "28-1. 기관제어패널의 ‘조속기중지등’점등 시의 현상은 무엇인가?", "answer": "예, -경보벨이 울리면서 무충전/무전원등과 터보보조펌프등이 점등되고,\n-기관이 정지됩니다."}, {"id": "28-2", "category": "기출", "question": "28-2. 기관제어패널의 ‘조속기중지등’점등 원인은 무엇인가?", "answer": "예, -윤활유압력 부족, 윤활유 과열, 윤활유 펌프 흡입측 흡입압력 과다, 저수위 또는 냉각수압력 부족, 고유조압 등으로,\n-조속기 저유압단추 탈출로 기관 정지되어 경보벨과 함께 점등됩니다."}, {"id": "29-1", "category": "기출", "question": "29-1. 기관온도스위치 기능시험법은 무엇인가요?", "answer": "예, -기관온도스위치에는 TA, TB, ETS가 있으며,\n-TA의 시험버튼을 눌러서 냉각선풍기 1개 회전 및 셔터 개방을 확인하고,\n-TB의 시험버튼을 눌러서 냉각선풍기 2개 회전을 확인하고,\n-ETS 시험버튼을 눌러서 경보벨, 적색등, 경보기모듈 리드 등 점등을 확인합니다."}, {"id": "29-2", "category": "기출", "question": "29-2. 기관온도스위치 TA, TB, ETS가 동작하는 온도와 냉각선풍기가 돌아가는 온도는 얼마인가?", "answer": "예, -TA는 화씨 174±1.5도, TB는 화씨 190±1.5도, ETS는 화씨 208±1.5도에서 동작하고\n-냉각선풍기1은 화씨 174도, 냉각선풍기2는 화씨 190도에서 구동되어 화씨 159도에서 동시에 멈춥니다. (화씨:℉)"}, {"id": "29-3", "category": "기출", "question": "29-3. 기관과열이 발생하는 온도는 얼마인가?", "answer": "예, -화씨 208도입니다. 섭씨로는 약 98도입니다. (섭씨:℃)"}, {"id": "30", "category": "기출", "question": "30. 기관제어패널의 ‘무충전/무전원등(NVR등)’ 점등 시 확인할 것은 무엇인가?", "answer": "예, -보조발전기계자회로차단기,\n-보조발전기출력회로차단기,\n-VR14모듈회로차단기(VR14 : 전압조정기모듈),\n-교류제어회로차단기,\n-발전계자회로차단기를 확인합니다."}, {"id": "31-1", "category": "기출", "question": "31-1. AN29 경보기모듈 점등 시기는 무엇인가?", "answer": "예, -기관과열, 접지, 여자제한, 발전제동격자전류 과다, 견인전동기 과여자, 기관공기여과기 폐색입니다."}, {"id": "31-2", "category": "기출", "question": "31-2. AN29 경보기모듈 점검방법은 무엇인가?", "answer": "예, -모듈의 시험스위치를 TEST위치로 하여 전체 점등 확인 후 RESET위치로 하여 점검합니다."}, {"id": "32", "category": "기출", "question": "32. TR16 전이제어모듈 기능시험법과 발전제동의 원리는 무엇인가?", "answer": "예, -단변 자변 제동위치, ER스위치 GF스위치 ON, 역전간 전방, 가감간 1단이상에서\n-모듈의 시험스위치를 TEST위치로 하여,\n-직렬동력접촉기가 복귀되고 병렬동력접촉기가 동작하는 소리로 확인합니다.\n-발전제동은 견인전동기를 일시 발전기로 전환하여 제동효과를 얻는 것입니다."}, {"id": "33", "category": "기출", "question": "33. ATS, ATC, ATP, 열차방호장치는 각각 무엇인가?", "answer": "예, -ATS는 열차자동정지장치로서 열차가 신호 현시 속도를 초과하면 자동으로 정지시키는 장치이며,\n-ATC는 열차자동제어장치로서 선행열차의 위치와 선로조건에 의한 운행속도를 차상신호로 표시하며, 속도를 초과하면 자동으로 감속시키는 장치이며,\n-ATP는 열차자동방호장치로서 열차운행에 필요한 각종 정보를 지상장치를 통해 차상 신호창에 표시하고 일정속도 이상을 초과하면 자동으로 감속·제어하는 장치이고,\n-열차방호장치란 사고발생으로 전차량 탈선, 인접선로 지장 등으로 병발사고 우려 시 인접선로를 운행하는 열차를 자동으로 경보·정지시키는 장치입니다."}, {"id": "34", "category": "기출", "question": "34. 열차방호장치 동작시 운전취급법은 무엇인가?", "answer": "예, -적색의 상황발생등 점등되면서 비상제동 체결됩니다.\n-자동제동변 비상제동위치 후 정거장에 문의하여,\n-관계열차일 때는 지시에 따르고,\n-관계열차가 아닐 때는 조치스위치를 3초 취급하여 비상제동을 복귀하여,\n-전방 1km를 25키로 이하로 주의운전 후 정상 운전하되,\n-전방 1km 내 정거장 있을 때는 정거장까지 주의운전합니다.\n>>> cf. 지시를 받을 수 없을 때는 어떻게 하나요?\n예, -무선통화를 시도하며 앞쪽 선로에 이상이 있을 것을 예측하고 25키로 이하의 속도로 다음 정거장까지 운행합니다."}, {"id": "35", "category": "기출", "question": "35. 열차방호장치 차단 방법은 무엇인가?", "answer": "예, -관제사의 승인을 받은 후, (통보 안 함)\n-차단콕크를 차단하고,\n-회로차단기를 off 시킵니다."}, {"id": "36", "category": "기출", "question": "36. 열차방호장치 차단콕크의 위치는?", "answer": "예, -운전실 제동장치실 왼쪽문 열면 비상살사스위치 ESS 위에 있습니다."}, {"id": "37", "category": "기출", "question": "37. ATP 차단 방법은 무엇인가?", "answer": "예, -차단콕크 차단 후 IS(차단)스위치 차단합니다."}, {"id": "38", "category": "기출", "question": "38. ATP 재기동 방법은 무엇인가?", "answer": "예, -Main NFB off하고 2~3초 후 Main NFB ON합니다."}, {"id": "39", "category": "기출", "question": "39. 신호보안장치 장애발생시 기관사의 조치는 무엇인가?", "answer": "예, -장애 발생역을 진·출입하는 기관사는 수신호 및 관계진로의 개통상태를 확인하고 주의운전 할 것.\n-운행도중 돌연한 신호장애로 열차·차량이 분기부에 걸치거나 분기부를 지나 정차했을 경우에는 관계진로의 개통상태 및 이상유무를 확인한 후 역장의 무선전호에 따라 운전을 개시할 것.\n-운전 중 신호보안장치의 장애나 이상을 발견하였을 경우에는 신속히 관계처에 통보할 것."}, {"id": "40", "category": "기출", "question": "40. ATP 운전모드 8가지는 무엇인가?", "answer": "예, -대기모드 (레벨STM, 0, 1)\n-책임모드 (레벨 0, 1)\n-완전모드 (레벨 1)\n-트립/트립후 모드 (레벨 0, 1)\n-입환모드 (레벨 0, 1)\n-시스템장애모드\n-비장착모드 (레벨 0)\n-ATS운전모드 (레벨STM) 입니다."}, {"id": "41-1", "category": "기출", "question": "41-1. ATP 레벨STM의 모드에는 어떤 것들이 있는가?", "answer": "예, -정상운전모드, 특수모드, 공사모드, 입환모드가 있습니다."}, {"id": "41-2", "category": "기출", "question": "41-2. ATP 레벨STM의 입환모드는 언제 사용하는가?", "answer": "예, -입환을 하기 위하여 정거장 구내에서 시속25키로 이하의 속도로 운전할 필요가 있을 때 사용합니다."}, {"id": "41-3", "category": "기출", "question": "41-3. ATP 레벨STM의 공사모드는 언제 사용하는가?", "answer": "예, -경강선 고속화구간에서 선로차단공사 등으로 반대선 운전시,\n-대용폐색방식 또는 폐색준용법을 시행할 경우,\n-신호발리스 고장 또는 고장의 통보를 받은 경우,\n-자동폐색신호기의 정지신호 구간을 45키로 이하 속도 승인을 받았을 때입니다."}, {"id": "41-4", "category": "기출", "question": "41-4. ATP 레벨STM의 특수모드는 언제 사용하는가?", "answer": "예, -특수운전모드는 유도신호 현시의 경우와,\n-자동폐색신호기에 정지신호 현시의 경우 최초열차가 25키로 이하의 속도로 운전할 필요있을 때 등의 경우에 사용합니다."}, {"id": "42", "category": "기출", "question": "42. 열차 퇴행시의 ATP 모드 선택은 어떻게 하는가?", "answer": "예, -레벨STM의 입환모드로 전환합니다. 다만, 맨 앞 동력차가 첫번째 자동폐색신호기의 발리스를 지나지 않았을 때는 예외로 합니다."}, {"id": "43", "category": "기출", "question": "43. ATP 비장착모드(레벨제로)를 사용하는 경우는 언제인가?", "answer": "예, -열차제어장치 ATP, ATS가 설치되지 않은 선로를 운행할 경우,\n-복선구간에서 대용폐색방식으로 반대선(우측선로)를 운행할 경우입니다. (양방향 신호설비 운영구간에서 양방향 운전시와 레벨전이용 발리스 설치시 제외)"}, {"id": "44", "category": "기출", "question": "44. ATP 운행시 특수운전기능 활성화시 이동거리제한과 활성화시간제한", "answer": "예, -80m 또는 60초입니다."}, {"id": "45", "category": "기출", "question": "45. 디젤기관차에 설치된 전동기의 종류", "answer": "예, -연료펌프전동기(FPM), 터보보조윤활유펌프전동기(TLPM), 조속기부스터펌프전동기(GBM), 기동전동기(SM), 견인전동기(TM), 여과기송풍전동기(FBL), 기관냉각선풍전동기(RBL), 발전제동격자송풍전동기(BKBL)"}, {"id": "46", "category": "기출", "question": "46. ARL 설치차량의 접지 발생시 복귀방법", "answer": "예, -가감간을 유전위치로 내리고 경고벨 멈출 때까지 10~20초 기다리면 3회까지 자동복귀 후 정상운전\n-자동복귀 불능시 ARL 수동접지복귀스위치 누름\n-4회이상 접지 발생시 관제사 지시에 의해 가감간을 유전위치로 내린 후 부착된 토글스위치를 RESET 위치로 취급"}, {"id": "47", "category": "기출", "question": "47. 저유압 기관정지장치가 동작하는 경우", "answer": "예, -기관윤활유 압력이 낮을 때\n-윤활유 및 피스톤 냉각펌프의 흡입압력이 높을 때\n-시간지연 바이패스밸브가 불량할 때\n-기관냉각수가 부족할 때\n-기관유조의 압력이 높을 때"}, {"id": "48", "category": "기출", "question": "48. 디젤기관차 저압계통의 종류", "answer": "예, -기동회로, 충전회로, 제어회로, 등회로\n-기타 : 난방, 경보, ATP, 운전경계장치, 열차방호장치"}, {"id": "49-1", "category": "기출", "question": "49-1. 기관전단부에 있는 치차의 종류", "answer": "예, -부속장치구동치차, 기관조속기구동치차, 주윤활유 및 피스톤 냉각유 펌프치차, 청정유펌프치차, 냉각수펌프치차"}, {"id": "49-2", "category": "기출", "question": "49-2. 부속장치구동치차와 반대방향으로 회전하는 치차의 종류", "answer": "예, -주윤활유 및 피스톤 냉각유 펌프치차, 청정유펌프치차, 냉각수펌프치차"}, {"id": "12-1", "category": "속도", "question": "12-1. 대용폐색방식 반대선 운전 시 제한속도는 얼마인가?", "answer": "예, -시속 70키로 이하입니다."}, {"id": "12-2", "category": "속도", "question": "12-2. 서행감시원 배치 시 서행속도는 얼마인가?", "answer": "예, -시속 10키로 이하입니다."}, {"id": "12-3", "category": "속도", "question": "12-3. 기적고장 시 제한속도는 얼마인가?", "answer": "예, -시속 30키로 이하입니다."}, {"id": "12-4", "category": "속도", "question": "12-4. 재해우려지역 통과속도는 얼마인가?", "answer": "예, -시속 15키로 이하입니다."}, {"id": "12-5", "category": "속도", "question": "12-5. 곡선 400R의 제한속도는 얼마인가?", "answer": "예, -시속 90키로 이하입니다."}, {"id": "12-6", "category": "속도", "question": "12-6. 곡선 500R의 제한속도는 얼마인가?", "answer": "예, -시속 100키로 이하입니다."}, {"id": "12-7", "category": "속도", "question": "12-7. 곡선 600R의 제한속도는 얼마인가?", "answer": "예, -시속 110키로 이하입니다."}, {"id": "12-8", "category": "속도", "question": "12-8. 곡선 700R의 제한속도는 얼마인가?", "answer": "예, -시속 115키로 이하입니다."}, {"id": "12-9", "category": "속도", "question": "12-9. 곡선 800R의 제한속도는 얼마인가?", "answer": "예, -시속 125키로 이하입니다."}, {"id": "12-10", "category": "속도", "question": "12-10. 곡선 900R의 제한속도는 얼마인가?", "answer": "예, -시속 130키로 이하입니다."}, {"id": "12-11", "category": "속도", "question": "12-11. 곡선 1000R의 제한속도는 얼마인가?", "answer": "예, -시속 135키로 이하입니다."}, {"id": "12-12", "category": "속도", "question": "12-12. 곡선 1200R 이상의 제한속도는 얼마인가?", "answer": "예, -시속 140키로 이하입니다."}, {"id": "12-13", "category": "속도", "question": "12-13. 선로전환기 철차번호 08번 편개의 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "12-14", "category": "속도", "question": "12-14. 선로전환기 철차번호 10번 편개의 제한속도는 얼마인가?", "answer": "예, -시속 35키로 이하입니다."}, {"id": "12-15", "category": "속도", "question": "12-15. 선로전환기 철차번호 12번 편개의 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "12-16", "category": "속도", "question": "12-16. 선로전환기 철차번호 15번 편개의 제한속도는 얼마인가?", "answer": "예, -시속 55키로 이하입니다."}, {"id": "12-17", "category": "속도", "question": "12-17. 관제사 승인 있을 때 열차 퇴행 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "12-18", "category": "속도", "question": "12-18. 위험물 수송열차가 관제사 승인 있을 때 퇴행하는 경우 제한속도는 얼마인가?", "answer": "예, -시속 15키로 이하입니다."}, {"id": "12-19", "category": "속도", "question": "12-19. 관제사 승인 없을 때 열차 퇴행 제한속도는 얼마인가?", "answer": "예, -시속 15키로 이하입니다."}, {"id": "12-20", "category": "속도", "question": "12-20. 장내·출발 진행수신호 운전 시 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "12-21", "category": "속도", "question": "12-21. 수신호등에 의한 운전 시 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "12-22", "category": "속도", "question": "12-22. 선로전환기 대향운전 시 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "12-23", "category": "속도", "question": "12-23. 추진운전 시 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다. 뒤 보조기관차가 견인형태 경우 시속45km/h 이하입니다."}, {"id": "12-24", "category": "속도", "question": "12-24. 차량입환 시 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "12-25", "category": "속도", "question": "12-25. 뒤 운전실 운전 시 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "12-26", "category": "속도", "question": "12-26. 입환신호기에 의한 열차 출발 시 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "12-27", "category": "속도", "question": "12-27. 제동축비율 100%미만 80%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?", "answer": "예, -시속 150키로입니다."}, {"id": "12-28", "category": "속도", "question": "12-28. 제동축비율 100%미만 80%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?", "answer": "예, -시속 100키로입니다."}, {"id": "12-29", "category": "속도", "question": "12-29. 제동축비율 100%미만 80%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?", "answer": "예, -시속 100키로입니다."}, {"id": "12-30", "category": "속도", "question": "12-30. 제동축비율 100%미만 80%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?", "answer": "예, -시속 80키로입니다."}, {"id": "12-31", "category": "속도", "question": "12-31. 제동축비율 80%미만 60%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?", "answer": "예, -시속 120키로입니다."}, {"id": "12-32", "category": "속도", "question": "12-32. 제동축비율 80%미만 60%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?", "answer": "예, -시속 90키로입니다."}, {"id": "12-33", "category": "속도", "question": "12-33. 제동축비율 80%미만 60%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?", "answer": "예, -시속 50키로입니다."}, {"id": "12-34", "category": "속도", "question": "12-34. 제동축비율 80%미만 60%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?", "answer": "예, -시속 50키로입니다."}, {"id": "12-35", "category": "속도", "question": "12-35. 제동축비율 60%미만 40%이상에서 여객열차 속도 150일 때 적용속도는 얼마인가?", "answer": "예, -시속 70키로입니다."}, {"id": "12-36", "category": "속도", "question": "12-36. 제동축비율 60%미만 40%이상에서 여객열차 속도 120일 때 적용속도는 얼마인가?", "answer": "예, -시속 70키로입니다."}, {"id": "12-37", "category": "속도", "question": "12-37. 제동축비율 60%미만 40%이상에서 화물열차 속도 110일 때 적용속도는 얼마인가?", "answer": "예, -시속 40키로입니다."}, {"id": "12-38", "category": "속도", "question": "12-38. 제동축비율 60%미만 40%이상에서 화물열차 속도 90일 때 적용속도는 얼마인가?", "answer": "예, -시속 40키로입니다."}, {"id": "12-39", "category": "속도", "question": "12-39. 제동축비율 40%미만에서 여객열차 속도 150일 때 운전속도는 얼마인가?", "answer": "예, -시속 25키로 이하 속도로 최근 정거장까지 운전합니다."}, {"id": "12-40", "category": "속도", "question": "12-40. 제동축비율 40%미만에서 여객열차 속도 120일 때 운전속도는 얼마인가?", "answer": "예, -시속 25키로 이하 속도로 최근 정거장까지 운전합니다."}, {"id": "12-41", "category": "속도", "question": "12-41. 제동축비율 40%미만에서 화물열차 속도 110일 때 운전속도는 얼마인가?", "answer": "예, -시속 25키로 이하 속도로 최근 정거장까지 운전합니다."}, {"id": "12-42", "category": "속도", "question": "12-42. 제동축비율 40%미만에서 화물열차 속도 90일 때 운전속도는 얼마인가?", "answer": "예, -시속 25키로 이하 속도로 최근 정거장까지 운전합니다."}, {"id": "12-43", "category": "속도", "question": "12-43. 하구배 5초과~12.5이하에서 여객열차 제한속도는 얼마인가?", "answer": "예, -시속 150키로 이하입니다."}, {"id": "12-44", "category": "속도", "question": "12-44. 하구배 5초과~12.5이하에서 화물열차 제한속도는 얼마인가?", "answer": "예, -시속 90키로 이하입니다."}, {"id": "12-45", "category": "속도", "question": "12-45. 하구배 12.5초과~15이하에서 여객열차 제한속도는 얼마인가?", "answer": "예, -시속 125키로 이하입니다."}, {"id": "12-46", "category": "속도", "question": "12-46. 하구배 12.5초과~15이하에서 화물열차 제한속도는 얼마인가?", "answer": "예, -시속 85키로 이하입니다."}, {"id": "12-47", "category": "속도", "question": "12-47. 하구배 15초과~20이하에서 여객열차 제한속도는 얼마인가?", "answer": "예, -시속 100키로 이하입니다."}, {"id": "12-48", "category": "속도", "question": "12-48. 하구배 15초과~20이하에서 화물열차 제한속도는 얼마인가?", "answer": "예, -시속 65키로 이하입니다."}, {"id": "12-49", "category": "속도", "question": "12-49. 하구배 20초과~30이하에서 여객열차 제한속도는 얼마인가?", "answer": "예, -시속 75키로 이하입니다."}, {"id": "12-50", "category": "속도", "question": "12-50. 하구배 20초과~30이하에서 화물열차 제한속도는 얼마인가?", "answer": "예, -시속 55키로 이하입니다."}, {"id": "12-51", "category": "속도", "question": "12-51. 하구배 30초과~35이하에서 여객열차 제한속도는 얼마인가?", "answer": "예, -시속 65키로 이하입니다."}, {"id": "12-52", "category": "속도", "question": "12-52. 하구배 30초과~35이하에서 화물열차 제한속도는 얼마인가?", "answer": "예, -시속 50키로 이하입니다."}, {"id": "50-1", "category": "속도", "question": "50-1. ATP 책임모드의 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "50-2", "category": "속도", "question": "50-2. ATP 트립/트립 후 모드에서 퇴행 시 제한속도는 얼마인가?", "answer": "예, -시속 15키로 이하입니다. 퇴행거리 제한 10미터입니다."}, {"id": "50-3", "category": "속도", "question": "50-3. ATP 트립/트립 후 모드에서 전도운행 시 제한속도는 얼마인가?", "answer": "예, -시속 45키로 이하입니다."}, {"id": "50-4", "category": "속도", "question": "50-4. ATP 입환모드의 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "50-5", "category": "속도", "question": "50-5. ATP 특수운전의 제한속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "50-6", "category": "속도", "question": "50-6. ATP 완해속도는 얼마인가?", "answer": "예, -시속 25키로 이하입니다."}, {"id": "50-7", "category": "속도", "question": "50-7. ATP 비장착모드의 제한속도는 얼마인가?", "answer": "예, -시속 70키로 이하입니다."}, {"id": "50-8", "category": "속도", "question": "50-8. ATP STM모드의 제한속도는 얼마인가?", "answer": "예, -신호현시속도입니다. 시속150키로 이상 선로는 시행세칙 따름입니다."}];
 
-        this.isDragging = false;
-        this.dragOffset = { x: 0, y: 0 };
-        
-        this.resize();
-        window.addEventListener('resize', () => this.resize());
-        
-        this.canvas.addEventListener('mousedown', e => this.handleStart(e));
-        window.addEventListener('mousemove', e => this.handleMove(e));
-        window.addEventListener('mouseup', e => this.handleEnd(e));
-        
-        this.canvas.addEventListener('touchstart', e => this.handleStart(e), {passive: false});
-        window.addEventListener('touchmove', e => this.handleMove(e), {passive: false});
-        window.addEventListener('touchend', e => this.handleEnd(e));
+    const store = {
+      last: 'oral_speed_quiz_last_selection_v1',
+      presets: 'oral_speed_quiz_presets_v1'
+    };
+
+    const state = {
+      mode: 'quiz',
+      tab: '기출',
+      session: [],
+      index: 0,
+      flipped: false,
+      tts: true,
+      timerStart: 0,
+      timerRaf: null,
+      intervalRef: null,
+      practiceType: 'continuous',
+      practiceIntervalSec: 60
+    };
+
+    const $ = (id) => document.getElementById(id);
+    const screens = ['menu-screen', 'settings-screen', 'quiz-screen', 'practice-screen'];
+
+    function showScreen(id) {
+      screens.forEach(s => $(s).classList.toggle('active', s === id));
+      if (id !== 'practice-screen') stopPracticeTimers();
+      if (id !== 'quiz-screen') window.speechSynthesis?.cancel();
     }
 
-    getPos(e) {
-        let cx, cy;
-        if(e.touches) {
-            cx = e.touches[0].clientX;
-            cy = e.touches[0].clientY;
-        } else {
-            cx = e.clientX;
-            cy = e.clientY;
-        }
-        const rect = this.canvas.getBoundingClientRect();
-        return { x: cx - rect.left, y: cy - rect.top };
+    function shuffle(arr) {
+      const a = [...arr];
+      for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+      }
+      return a;
     }
 
-    handleStart(e) {
-        if (!this.active) return;
-        e.preventDefault();
-        const pos = this.getPos(e);
-        const dist = Math.sqrt((pos.x - this.player.x)**2 + (pos.y - this.player.y)**2);
-        
-        if (dist < this.player.radius * 3.0) { 
-            this.isDragging = true;
-            this.dragOffset.x = pos.x - this.player.x;
-            this.dragOffset.y = pos.y - this.player.y;
-        }
+    function sample(arr, n) { return shuffle(arr).slice(0, Math.min(n, arr.length)); }
+    function randInt(min, max) { return min + Math.floor(Math.random() * (max - min + 1)); }
+
+    function capSpeedGroups(list) {
+      const group12 = list.filter(q => q.id.startsWith('12-'));
+      const group50 = list.filter(q => q.id.startsWith('50-'));
+      const others = list.filter(q => !q.id.startsWith('12-') && !q.id.startsWith('50-'));
+      const picked12 = group12.length > 5 ? sample(group12, randInt(3, 5)) : group12;
+      const picked50 = group50.length > 3 ? sample(group50, randInt(2, 3)) : group50;
+      return shuffle([...others, ...picked12, ...picked50]);
     }
 
-    handleMove(e) {
-        if (!this.active || !this.isDragging) return;
-        e.preventDefault(); 
-        const pos = this.getPos(e);
-        
-        this.player.x = pos.x - this.dragOffset.x;
-        this.player.y = pos.y - this.dragOffset.y;
-
-        this.player.x = Math.max(this.player.radius, Math.min(this.canvas.width - this.player.radius, this.player.x));
-        this.player.y = Math.max(this.player.radius, Math.min(this.canvas.height - this.player.radius, this.player.y));
+    function renderLists() {
+      ['기출', '속도'].forEach(cat => {
+        const box = $('list-' + cat);
+        box.innerHTML = BANK.filter(q => q.category === cat).map(q => `
+          <label class="problem-item">
+            <input type="checkbox" value="${q.id}" data-cat="${q.category}" />
+            <span>${escapeHtml(q.question)}</span>
+          </label>
+        `).join('');
+      });
+      document.querySelectorAll('.problem-item input').forEach(input => input.addEventListener('change', updateSelectedCount));
+      updateSelectedCount();
     }
 
-    handleEnd(e) {
-        this.isDragging = false;
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[ch]));
     }
 
-    resize() {
-        this.canvas.width = this.canvas.parentElement.clientWidth;
-        this.canvas.height = this.canvas.parentElement.clientHeight;
-        if (!this.active && this.canvas.width > 0) {
-            this.player.x = this.canvas.width / 2;
-            this.player.y = this.canvas.height / 2;
-            this.zone.x = this.canvas.width / 2;
-            this.zone.y = this.canvas.height / 2;
-        }
+    function setTab(cat) {
+      state.tab = cat;
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === cat));
+      document.querySelectorAll('.problem-list').forEach(list => list.classList.toggle('active', list.id === 'list-' + cat));
     }
 
-    start(diff) {
-        this.difficulty = diff;
-        this.active = true;
-        this.health = 100;
-        this.isDragging = false;
-        
-        this.resize(); 
-
-        // 속도 및 크기 설정
-        if (diff === 'easy') {
-            this.zoneSpeed = 1.0; 
-            this.zone.width = 120; this.zone.height = 120;
-            this.zone.radius = 0;
-            this.nextChangeTime = Infinity; // 방향 전환 없음 (직진만)
-        } else if (diff === 'normal') {
-            this.zoneSpeed = 2.0; 
-            this.zone.width = 100; this.zone.height = 100;
-            this.zone.radius = 15; 
-            // 3초 이상 (ms 기준)
-            this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
-        } else {
-            this.zoneSpeed = 3.0; 
-            this.zone.width = 80; this.zone.height = 80;
-            this.zone.radius = 15;
-            this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
-        }
-
-        // 초기 이동 방향 설정
-        this.setRandomVelocity();
+    function updateSelectedCount() {
+      const count = getCheckedIds().length;
+      $('selected-count').textContent = `선택 ${count}개`;
     }
 
-    setRandomVelocity() {
-        const angle = Math.random() * Math.PI * 2;
-        this.zone.vx = Math.cos(angle) * this.zoneSpeed;
-        this.zone.vy = Math.sin(angle) * this.zoneSpeed;
-        
-        // 타이머 재설정 (실제 시간 기반)
-        if (this.difficulty === 'normal') {
-            this.nextChangeTime = Date.now() + 3000 + Math.random() * 2000;
-        } else if (this.difficulty === 'hard') {
-            this.nextChangeTime = Date.now() + 1000 + Math.random() * 1000;
-        }
+    function getCheckedIds() {
+      return Array.from(document.querySelectorAll('.problem-item input:checked')).map(i => i.value);
     }
 
-    update() {
-        if (!this.active) return;
-        this.updateZoneAI();
-        this.checkCollision();
+    function setCheckedIds(ids) {
+      const idSet = new Set(ids || []);
+      document.querySelectorAll('.problem-item input').forEach(i => i.checked = idSet.has(i.value));
+      updateSelectedCount();
     }
 
-    updateZoneAI() {
-        // 1. 이동
-        this.zone.x += this.zone.vx;
-        this.zone.y += this.zone.vy;
-
-        const halfW = this.zone.width / 2;
-        const halfH = this.zone.height / 2;
-
-        // 2. 벽 튕기기
-        let hitWall = false;
-        if (this.zone.x - halfW < 0) {
-            this.zone.x = halfW;
-            this.zone.vx *= -1;
-            hitWall = true;
-        } else if (this.zone.x + halfW > this.canvas.width) {
-            this.zone.x = this.canvas.width - halfW;
-            this.zone.vx *= -1;
-            hitWall = true;
-        }
-
-        if (this.zone.y - halfH < 0) {
-            this.zone.y = halfH;
-            this.zone.vy *= -1;
-            hitWall = true;
-        } else if (this.zone.y + halfH > this.canvas.height) {
-            this.zone.y = this.canvas.height - halfH;
-            this.zone.vy *= -1;
-            hitWall = true;
-        }
-
-        // 3. 시간 경과에 따른 방향 전환 (쉬움 제외)
-        if (this.difficulty !== 'easy') {
-            if (Date.now() > this.nextChangeTime) {
-                this.setRandomVelocity();
-            }
-        }
-        
-        // Hard 모드 Morphing
-        if (this.difficulty === 'hard') {
-            const time = Date.now() / 500;
-            this.zone.radius = 10 + ((Math.sin(time) + 1) * 15);
-        }
+    function getBaseSelection() {
+      const qMode = document.querySelector('input[name="q-mode"]:checked').value;
+      if (qMode === 'all') return BANK;
+      const ids = getCheckedIds();
+      return ids.map(id => BANK.find(q => q.id === id)).filter(Boolean);
     }
 
-    checkCollision() {
-        const halfW = this.zone.width / 2;
-        const halfH = this.zone.height / 2;
-        const dx = Math.abs(this.player.x - this.zone.x);
-        const dy = Math.abs(this.player.y - this.zone.y);
-        let inside = false;
-
-        if (dx < halfW && dy < halfH) inside = true;
-
-        const hpBar = document.getElementById('hp-bar');
-        if (inside) {
-            this.ctx.strokeStyle = "#00ff00"; 
-            this.health = Math.min(100, this.health + 0.15); 
-        } else {
-            this.ctx.strokeStyle = "#ff0000"; 
-            this.health -= 0.15; 
-            if (this.health <= 0) {
-                this.health = 0;
-                app.gameOver();
-            }
-        }
-        hpBar.style.width = this.health + "%";
+    function makeSession() {
+      const base = getBaseSelection();
+      if (!base.length) { alert('최소 1개 이상의 문제를 선택해주세요.'); return null; }
+      const ids = base.map(q => q.id);
+      localStorage.setItem(store.last, JSON.stringify(ids));
+      return capSpeedGroups(base);
     }
 
-    render() {
-        this.ctx.fillStyle = "#000";
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        this.ctx.strokeStyle = "#222";
-        this.ctx.lineWidth = 1;
-        const gridSize = 50;
-        this.ctx.beginPath();
-        for(let x=0; x<this.canvas.width; x+=gridSize) {
-            this.ctx.moveTo(x, 0); this.ctx.lineTo(x, this.canvas.height);
-        }
-        for(let y=0; y<this.canvas.height; y+=gridSize) {
-            this.ctx.moveTo(0, y); this.ctx.lineTo(this.canvas.width, y);
-        }
-        this.ctx.stroke();
-
-        this.ctx.lineWidth = 4;
-        this.ctx.strokeStyle = this.ctx.strokeStyle === "#00ff00" ? "#00ff00" : "#ff0000";
-        this.drawRoundRect(this.zone.x - this.zone.width/2, this.zone.y - this.zone.height/2, 
-                           this.zone.width, this.zone.height, this.zone.radius);
-        this.ctx.stroke();
-        this.ctx.fillStyle = this.ctx.strokeStyle === "#00ff00" ? "rgba(0, 255, 0, 0.1)" : "rgba(255, 0, 0, 0.1)";
-        this.ctx.fill();
-
-        this.ctx.fillStyle = "#00ffff";
-        this.ctx.shadowBlur = 15;
-        this.ctx.shadowColor = "#00ffff";
-        this.ctx.beginPath();
-        this.ctx.arc(this.player.x, this.player.y, this.player.radius, 0, Math.PI*2);
-        this.ctx.fill();
-        this.ctx.shadowBlur = 0;
+    function speak(text) {
+      if (!state.tts || !window.speechSynthesis || !text) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text.replace(/^\d+(?:-\d+)?\.\s*/, ''));
+      u.lang = 'ko-KR';
+      u.rate = 1.0;
+      window.speechSynthesis.speak(u);
     }
 
-    drawRoundRect(x, y, w, h, r) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + r, y);
-        this.ctx.arcTo(x + w, y, x + w, y + h, r);
-        this.ctx.arcTo(x + w, y + h, x, y + h, r);
-        this.ctx.arcTo(x, y + h, x, y, r);
-        this.ctx.arcTo(x, y, x + w, y, r);
-        this.ctx.closePath();
-    }
-}
-
-/* ------------------------------------------------------------------
-   3. 퀴즈 매니저
------------------------------------------------------------------- */
-class QuizManager {
-    constructor() {
-        this.currentSet = [];
-        this.remaining = [];
-        this.active = false;
-        this.state = 'idle'; 
-        this.timerStart = 0;
-        this.timerRef = null;
-        this.nextTimer = null;
-        this.intervalTimer = null;
-        
-        this.mode = 'game'; 
-        this.practiceType = 'continuous'; 
-        this.practiceInterval = 60; 
-
-        this.useVoice = false;
-        this.useTTS = false;
-        this.recognition = null;
-        this.initVoice();
+    function startCurrentMode() {
+      const session = makeSession();
+      if (!session) return;
+      state.session = session;
+      state.index = 0;
+      state.flipped = false;
+      state.tts = $('use-tts').checked;
+      state.practiceType = document.querySelector('input[name="p-mode"]:checked')?.value || 'continuous';
+      state.practiceIntervalSec = (parseInt($('p-interval').value, 10) || 1) * 60;
+      if (state.mode === 'quiz') {
+        showScreen('quiz-screen');
+        renderQuiz();
+      } else {
+        showScreen('practice-screen');
+        renderPractice();
+        startPracticeTimers();
+      }
     }
 
-    initVoice() {
-        const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (SR) {
-            this.recognition = new SR();
-            this.recognition.lang = 'ko-KR';
-            this.recognition.continuous = true;
-            this.recognition.interimResults = false;
-            this.recognition.onresult = (e) => {
-                const txt = e.results[e.results.length-1][0].transcript;
-                this.processVoice(txt);
-            };
-            this.recognition.onend = () => {
-                if (this.active && this.useVoice) try{this.recognition.start()}catch(e){}
-            };
-        }
-    }
-    
-    // Levenshtein Distance 계산 함수
-    getLevenshteinDistance(a, b) {
-        if (a.length === 0) return b.length;
-        if (b.length === 0) return a.length;
-        const matrix = [];
-        for (let i = 0; i <= b.length; i++) matrix[i] = [i];
-        for (let j = 0; j <= a.length; j++) matrix[0][j] = j;
-        for (let i = 1; i <= b.length; i++) {
-            for (let j = 1; j <= a.length; j++) {
-                if (b.charAt(i - 1) === a.charAt(j - 1)) {
-                    matrix[i][j] = matrix[i - 1][j - 1];
-                } else {
-                    matrix[i][j] = Math.min(
-                        matrix[i - 1][j - 1] + 1,
-                        Math.min(matrix[i][j - 1] + 1, matrix[i - 1][j] + 1)
-                    );
-                }
-            }
-        }
-        return matrix[b.length][a.length];
+    function current() { return state.session[state.index]; }
+
+    function renderQuiz() {
+      const q = current();
+      if (!q) return;
+      state.flipped = false;
+      $('flip-card').classList.remove('flipped');
+      $('quiz-counter').textContent = `${state.index + 1} / ${state.session.length}`;
+      $('quiz-category').textContent = q.category + ' · ' + q.id;
+      $('quiz-question').textContent = q.question;
+      $('quiz-answer').textContent = q.answer;
+      speak(q.question);
     }
 
-    processVoice(txt) {
-        if (!this.active) return;
-        
-        // 정규화 (공백 및 특수문자 제거)
-        const cleanText = txt.replace(/[.,?!]/g, "").replace(/\s/g, "");
-
-        if (this.mode === 'game' || (this.mode === 'practice' && this.practiceType === 'continuous')) {
-            if (this.state === 'answering') {
-                // 검사할 키워드 목록
-                const targets = ["이상", "이상입니다", "끝", "끝입니다", "종료"];
-                let matched = false;
-
-                for (let target of targets) {
-                    // 1. 정확히 일치하는 경우
-                    if (cleanText.includes(target)) {
-                        matched = true; 
-                        break;
-                    }
-
-                    // 2. Levenshtein Distance 체크
-                    // "끝" 같은 1글자는 정확도 위해 제외 (2글자 이상만 퍼지 매칭)
-                    if (target.length >= 2) {
-                        const dist = this.getLevenshteinDistance(cleanText, target);
-                        // 5글자 이상("이상입니다")은 2개까지, 그 외는 1개까지 오차 허용
-                        const threshold = (target.length >= 5) ? 2 : 1;
-                        
-                        // 입력된 텍스트가 키워드보다 훨씬 길 수 있으므로 (문장 끝에 포함된 경우)
-                        // 뒷부분만 잘라서 비교하거나, 전체 거리 체크는 짧은 발화일 때 유효
-                        if (cleanText.length <= target.length + 2 && dist <= threshold) {
-                            matched = true;
-                            break;
-                        }
-                        
-                        // 문장 끝부분 확인 ("~~~ 이산입니다" 같은 경우)
-                        const suffix = cleanText.slice(-target.length);
-                        if (this.getLevenshteinDistance(suffix, target) <= threshold) {
-                             matched = true;
-                             break;
-                        }
-                    }
-                }
-
-                if (matched) {
-                    this.finishAnswering();
-                }
-            }
-        }
+    function flipQuiz() {
+      state.flipped = !state.flipped;
+      $('flip-card').classList.toggle('flipped', state.flipped);
     }
 
-    setQuestions(list) {
-        this.currentSet = [...list];
-    }
-    
-    shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
+    function move(delta) {
+      if (!state.session.length) return;
+      state.index = (state.index + delta + state.session.length) % state.session.length;
+      if (state.mode === 'quiz') renderQuiz();
+      else { renderPractice(); startPracticeTimers(); }
     }
 
-    start(config) {
-        this.active = true;
-        this.mode = config.mode;
-        this.practiceType = config.practiceType;
-        this.practiceInterval = config.practiceInterval;
-        this.useVoice = config.useVoice;
-        this.useTTS = config.useTTS;
-
-        this.remaining = this.shuffleArray([...this.currentSet]);
-        
-        if (this.useVoice && this.recognition) try{this.recognition.start()}catch(e){}
-        
-        document.getElementById('btn-practice-exit').style.display = (this.mode === 'practice') ? 'block' : 'none';
-
-        if (this.mode === 'practice' && this.practiceType === 'timer') {
-             this.showQuestion();
-             this.intervalTimer = setInterval(() => {
-                 this.finishAnswering(true); 
-             }, this.practiceInterval * 1000);
-        } else {
-            this.scheduleNext();
-        }
+    function reshuffleSession() {
+      state.session = capSpeedGroups(getBaseSelection());
+      state.index = 0;
+      if (state.mode === 'quiz') renderQuiz();
+      else { renderPractice(); startPracticeTimers(); }
     }
 
-    stop() {
-        this.active = false;
-        if (this.recognition) try{this.recognition.stop()}catch(e){}
-        clearTimeout(this.nextTimer);
-        clearInterval(this.intervalTimer);
-        cancelAnimationFrame(this.timerRef);
-        window.speechSynthesis.cancel(); 
+    function renderPractice() {
+      const q = current();
+      if (!q) return;
+      $('practice-counter').textContent = `${state.index + 1} / ${state.session.length}`;
+      $('practice-category').textContent = q.category + ' · ' + q.id;
+      $('practice-mode-label').textContent = state.practiceType === 'timer' ? `${state.practiceIntervalSec / 60}분 자동 변경` : '연속 모드';
+      $('practice-question').textContent = q.question;
+      $('practice-answer').textContent = q.answer;
+      $('practice-answer').style.display = 'none';
+      $('btn-answer-toggle').textContent = '답 보기';
+      speak(q.question);
+      resetTimerText();
     }
 
-    scheduleNext() {
-        if (this.remaining.length === 0) {
-            if (this.mode === 'practice') {
-                 this.remaining = this.shuffleArray([...this.currentSet]);
-            } else {
-                 app.gameClear();
-                 return;
-            }
-        }
+    function resetTimerText() { $('practice-timer').textContent = '00.00'; }
 
-        const delay = this.mode === 'game' ? (3000 + Math.random() * 3000) : 500;
-        
-        this.state = 'idle';
-        document.getElementById('q-type').innerText = "STANDBY";
-        document.getElementById('q-text').innerText = `대기 중... (남은: ${this.remaining.length})`;
-        document.getElementById('q-answer').style.display = 'none';
-        document.getElementById('q-timer').style.display = 'none';
-        
-        const micEl = document.getElementById('mic-status');
-        micEl.innerText = "다음 문제 준비 중...";
-        micEl.className = "";
-
-        this.nextTimer = setTimeout(() => this.showQuestion(), delay);
+    function startPracticeTimers() {
+      stopPracticeTimers();
+      state.timerStart = performance.now();
+      tickTimer();
+      if (state.practiceType === 'timer') {
+        state.intervalRef = setInterval(() => move(1), state.practiceIntervalSec * 1000);
+      }
     }
 
-    showQuestion() {
-        if (!this.active) return;
-        
-        if (this.remaining.length === 0) {
-            if (this.mode === 'practice') {
-                 this.remaining = this.shuffleArray([...this.currentSet]);
-            } else {
-                 app.gameClear();
-                 return;
-            }
-        }
-
-        const rawQ = this.remaining.pop();
-        const displayText = rawQ.replace(/^[0-9]+(-[0-9]+)?\.\s*/, "");
-
-        this.state = 'question';
-        document.getElementById('q-type').innerText = "QUESTION";
-        document.getElementById('q-text').innerText = displayText;
-        
-        const micEl = document.getElementById('mic-status');
-
-        if (this.mode === 'practice' && this.practiceType === 'timer') {
-             if (this.useTTS) this.speak(displayText); 
-             micEl.innerText = `⏳ ${this.practiceInterval / 60}분 마다 변경 중`;
-             this.state = 'viewing'; 
-        } else {
-            if (this.useTTS) {
-                micEl.innerText = "🔊 문제 읽는 중...";
-                this.speak(displayText, () => {
-                    this.startAnswering();
-                });
-            } else {
-                this.startAnswering();
-            }
-        }
-    }
-    
-    speak(text, callback) {
-        if (!window.speechSynthesis) {
-            if(callback) callback();
-            return;
-        }
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR';
-        utterance.rate = 1.0; 
-        
-        if (callback) {
-            utterance.onend = () => {
-                if(this.active) callback();
-            };
-        }
-        
-        window.speechSynthesis.speak(utterance);
+    function tickTimer() {
+      const sec = (performance.now() - state.timerStart) / 1000;
+      $('practice-timer').textContent = sec.toFixed(2).padStart(5, '0');
+      state.timerRaf = requestAnimationFrame(tickTimer);
     }
 
-    startAnswering() {
-        if (this.mode === 'practice' && this.practiceType === 'timer') return;
-
-        this.state = 'answering';
-        this.timerStart = performance.now();
-        document.getElementById('q-type').innerText = "RECORDING...";
-        document.getElementById('q-timer').style.display = 'block';
-        
-        const micEl = document.getElementById('mic-status');
-        if (this.useVoice) {
-            micEl.innerText = "🗣️ 답변 후 '이상입니다' 발언";
-            micEl.className = "listening";
-        } else {
-            micEl.innerText = "답변 후 터치하여 완료";
-            micEl.className = "";
-        }
-        
-        this.updateTimer();
+    function stopPracticeTimers() {
+      if (state.timerRaf) cancelAnimationFrame(state.timerRaf);
+      if (state.intervalRef) clearInterval(state.intervalRef);
+      state.timerRaf = null;
+      state.intervalRef = null;
     }
 
-    updateTimer() {
-        if (this.state !== 'answering') return;
-        const now = performance.now();
-        const t = (now - this.timerStart) / 1000;
-        document.getElementById('q-timer').innerText = t.toFixed(2);
-        this.timerRef = requestAnimationFrame(() => this.updateTimer());
+    function togglePracticeAnswer() {
+      const el = $('practice-answer');
+      const show = el.style.display !== 'block';
+      el.style.display = show ? 'block' : 'none';
+      $('btn-answer-toggle').textContent = show ? '답 숨기기' : '답 보기';
     }
 
-    finishAnswering(auto = false) {
-        this.state = 'result';
-        cancelAnimationFrame(this.timerRef);
-        document.getElementById('q-type').innerText = "DONE";
-        document.getElementById('mic-status').className = "";
-
-        if (auto) {
-            this.showQuestion();
-        } else {
-            document.getElementById('mic-status').innerText = "다음 문제로 넘어갑니다.";
-            const waitTime = (this.mode === 'practice') ? 500 : 3000;
-            setTimeout(() => {
-                if(this.active) this.scheduleNext();
-            }, waitTime);
-        }
+    function loadLastSelection() {
+      try {
+        const ids = JSON.parse(localStorage.getItem(store.last) || '[]');
+        if (!ids.length) { alert('저장된 마지막 선택이 없습니다.'); return; }
+        document.querySelector('input[name="q-mode"][value="select"]').checked = true;
+        $('selector-panel').style.display = 'block';
+        setCheckedIds(ids);
+      } catch { alert('마지막 선택을 불러오지 못했습니다.'); }
     }
 
-    handleTouch() {
-        if (this.mode === 'practice' && this.practiceType === 'timer') return;
-        if (this.state === 'answering') this.finishAnswering();
+    function getPresets() {
+      try { return JSON.parse(localStorage.getItem(store.presets) || '{}'); } catch { return {}; }
     }
-}
-
-/* ------------------------------------------------------------------
-   4. UI 및 앱 컨트롤러
------------------------------------------------------------------- */
-const ui = {
-    historyLoaded: false,
-
-    toggleProblemSelector: function(show) {
-        document.getElementById('problem-selector').style.display = show ? 'block' : 'none';
-        if (show) this.checkAndLoadHistory();
-    },
-    toggleTimerSetting: function(show) {
-        document.getElementById('timer-input-area').style.display = show ? 'block' : 'none';
-    },
-    switchTab: function(tab) {
-        const tabs = {
-            oral: {
-                tabEl: document.getElementById('tab-oral'),
-                listEl: document.getElementById('list-oral')
-            },
-            speed: {
-                tabEl: document.getElementById('tab-speed'),
-                listEl: document.getElementById('list-speed')
-            }
-        };
-
-        Object.keys(tabs).forEach(key => {
-            const isActive = key === tab;
-            tabs[key].tabEl.classList.toggle('active', isActive);
-            tabs[key].listEl.style.display = isActive ? 'block' : 'none';
-        });
-    },
-    renderList: function(id, list) {
-        const container = document.getElementById(id);
-        container.innerHTML = '';
-
-        list.forEach(q => {
-            const label = document.createElement('label');
-            label.className = 'problem-item';
-
-            const input = document.createElement('input');
-            input.type = 'checkbox';
-            input.value = q;
-
-            label.appendChild(input);
-            label.appendChild(document.createTextNode(q));
-            container.appendChild(label);
-        });
-    },
-    selectAll: function(select) {
-        const activeList = Array.from(document.querySelectorAll('.problem-list'))
-            .find(list => list.style.display !== 'none');
-        if (!activeList) return;
-
-        const inputs = activeList.querySelectorAll('input');
-        inputs.forEach(input => input.checked = select);
-    },
-    getAllQuestions: function() {
-        return [...QUESTIONS_ORAL, ...QUESTIONS_SPEED];
-    },
-    getSelectedQuestions: function() {
-        const mode = document.querySelector('input[name="q-mode"]:checked').value;
-        if (mode === 'all') {
-            return this.getAllQuestions();
-        }
-
-        const inputs = document.querySelectorAll('.problem-item input:checked');
-        return Array.from(inputs).map(input => input.value);
-    },
-    checkAndLoadHistory: function() {
-        const saved = localStorage.getItem('focusTrainer_lastSelection');
-        if (!saved || this.historyLoaded) return;
-
-        if (confirm("이전에 선택했던 문제 목록을 불러오시겠습니까?")) {
-            const savedList = JSON.parse(saved);
-            const inputs = document.querySelectorAll('.problem-item input');
-            inputs.forEach(input => {
-                if (savedList.includes(input.value)) input.checked = true;
-            });
-        }
-
-        this.historyLoaded = true;
-    },
-    saveHistory: function(list) {
-        localStorage.setItem('focusTrainer_lastSelection', JSON.stringify(list));
+    function setPresets(presets) { localStorage.setItem(store.presets, JSON.stringify(presets)); }
+    function refreshPresetSelect() {
+      const presets = getPresets();
+      const names = Object.keys(presets);
+      $('preset-select').innerHTML = names.length ? names.map(n => `<option value="${escapeHtml(n)}">${escapeHtml(n)} (${presets[n].length}개)</option>`).join('') : '<option value="">저장된 목록 없음</option>';
     }
-};
-
-
-const tracker = new TrackerGame('game-canvas');
-const quiz = new QuizManager();
-
-const app = {
-    mode: 'game', 
-    lastFrameTime: 0, 
-
-    init: function() {
-        ui.renderList('list-oral', QUESTIONS_ORAL);
-        ui.renderList('list-speed', QUESTIONS_SPEED);
-    },
-    selectMode: function(mode) {
-        this.mode = mode;
-        document.getElementById('main-menu').style.display = 'none';
-        document.getElementById('start-screen').style.display = 'flex';
-
-        ui.historyLoaded = false;
-
-        if (mode === 'game') {
-            document.getElementById('setting-title').innerText = "게임 모드 설정";
-            document.getElementById('settings-game').style.display = 'block';
-            document.getElementById('settings-practice').style.display = 'none';
-        } else {
-            document.getElementById('setting-title').innerText = "연습 모드 설정";
-            document.getElementById('settings-game').style.display = 'none';
-            document.getElementById('settings-practice').style.display = 'block';
-        }
-    },
-    start: function() {
-        const selectedQ = ui.getSelectedQuestions();
-        if (selectedQ.length === 0) {
-            alert("최소 1개 이상의 문제를 선택해주세요.");
-            return;
-        }
-        
-        if (document.querySelector('input[name="q-mode"]:checked').value === 'select') {
-            ui.saveHistory(selectedQ);
-        }
-
-        const useVoice = document.getElementById('use-voice').checked;
-        const useTTS = document.getElementById('use-tts').checked;
-        
-        let practiceType = 'continuous';
-        let practiceInterval = 60;
-
-        if (this.mode === 'practice') {
-            practiceType = document.querySelector('input[name="p-mode"]:checked').value;
-            practiceInterval = (parseInt(document.getElementById('p-interval').value) || 1) * 60;
-        }
-
-        document.getElementById('start-screen').style.display = 'none';
-        
-        const topScreen = document.getElementById('top-screen');
-        const bottomScreen = document.getElementById('bottom-screen');
-
-        if (this.mode === 'game') {
-            topScreen.style.display = 'flex';
-            topScreen.style.flex = '2';
-            bottomScreen.style.flex = '1';
-            const diff = document.querySelector('input[name="diff"]:checked').value;
-            tracker.start(diff);
-            this.loop(0);
-        } else {
-            topScreen.style.display = 'none';
-            bottomScreen.style.height = '100%';
-        }
-
-        quiz.setQuestions(selectedQ);
-        quiz.start({
-            mode: this.mode,
-            practiceType: practiceType,
-            practiceInterval: practiceInterval,
-            useVoice: useVoice,
-            useTTS: useTTS
-        });
-    },
-    loop: function(timestamp) {
-        if (!tracker.active) return;
-        if (!this.lastFrameTime) this.lastFrameTime = timestamp;
-
-        const elapsed = timestamp - this.lastFrameTime;
-
-        if (elapsed > 1000 / 60) {
-            tracker.update();
-            tracker.render();
-            this.lastFrameTime = timestamp;
-        }
-
-        requestAnimationFrame((t) => this.loop(t));
-    },
-    gameOver: function() {
-        tracker.active = false;
-        quiz.stop();
-        document.getElementById('game-over').style.display = 'flex';
-    },
-    gameClear: function() {
-        tracker.active = false;
-        quiz.stop();
-        document.getElementById('game-clear').style.display = 'flex';
-    },
-    restartGame: function() {
-        document.getElementById('game-clear').style.display = 'none';
-        
-        if (this.mode === 'game') {
-            tracker.start(tracker.difficulty);
-            if(!tracker.active) {
-                 tracker.active = true; 
-                 requestAnimationFrame((t) => this.loop(t));
-            }
-        }
-        
-        quiz.start({
-            mode: this.mode,
-            practiceType: quiz.practiceType,
-            practiceInterval: quiz.practiceInterval,
-            useVoice: quiz.useVoice,
-            useTTS: quiz.useTTS
-        });
+    function savePreset() {
+      const name = $('preset-name').value.trim();
+      if (!name) { alert('저장 이름을 입력해주세요.'); return; }
+      const ids = getCheckedIds();
+      if (!ids.length) { alert('선택된 문제가 없습니다.'); return; }
+      const presets = getPresets();
+      presets[name] = ids;
+      setPresets(presets);
+      refreshPresetSelect();
+      $('preset-select').value = name;
+      alert('선택 목록을 저장했습니다.');
     }
-};
+    function loadPreset() {
+      const name = $('preset-select').value;
+      const presets = getPresets();
+      if (!name || !presets[name]) { alert('불러올 목록이 없습니다.'); return; }
+      document.querySelector('input[name="q-mode"][value="select"]').checked = true;
+      $('selector-panel').style.display = 'block';
+      setCheckedIds(presets[name]);
+    }
+    function deletePreset() {
+      const name = $('preset-select').value;
+      const presets = getPresets();
+      if (!name || !presets[name]) { alert('삭제할 목록이 없습니다.'); return; }
+      if (!confirm(`'${name}' 목록을 삭제할까요?`)) return;
+      delete presets[name];
+      setPresets(presets);
+      refreshPresetSelect();
+    }
 
-app.init();
+    function wire() {
+      renderLists();
+      refreshPresetSelect();
+      document.querySelectorAll('[data-open-mode]').forEach(btn => btn.addEventListener('click', () => {
+        state.mode = btn.dataset.openMode;
+        $('setting-title').textContent = state.mode === 'quiz' ? '퀴즈 모드 설정' : '연습 모드 설정';
+        $('practice-settings').classList.toggle('active', state.mode === 'practice');
+        showScreen('settings-screen');
+      }));
+      $('btn-home').addEventListener('click', () => showScreen('menu-screen'));
+      document.querySelectorAll('input[name="q-mode"]').forEach(r => r.addEventListener('change', () => {
+        $('selector-panel').style.display = r.value === 'select' && r.checked ? 'block' : document.querySelector('input[name="q-mode"]:checked').value === 'select' ? 'block' : 'none';
+      }));
+      document.querySelectorAll('input[name="p-mode"]').forEach(r => r.addEventListener('change', () => {
+        $('timer-row').style.display = document.querySelector('input[name="p-mode"]:checked').value === 'timer' ? 'flex' : 'none';
+      }));
+      document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTab(t.dataset.tab)));
+      $('btn-active-all').addEventListener('click', () => { document.querySelectorAll(`#list-${state.tab} input`).forEach(i => i.checked = true); updateSelectedCount(); });
+      $('btn-active-none').addEventListener('click', () => { document.querySelectorAll(`#list-${state.tab} input`).forEach(i => i.checked = false); updateSelectedCount(); });
+      $('btn-last-load').addEventListener('click', loadLastSelection);
+      $('btn-save-preset').addEventListener('click', savePreset);
+      $('btn-load-preset').addEventListener('click', loadPreset);
+      $('btn-delete-preset').addEventListener('click', deletePreset);
+      $('btn-start').addEventListener('click', startCurrentMode);
 
-const quizArea = document.getElementById('quiz-area');
-quizArea.addEventListener('mousedown', (e) => {
-    if(e.target.id === 'btn-practice-exit') return;
-    quiz.handleTouch();
-});
-quizArea.addEventListener('touchstart', (e) => {
-    if(e.target.id === 'btn-practice-exit') return;
-    e.preventDefault();
-    quiz.handleTouch();
-});
+      $('flip-card').addEventListener('click', flipQuiz);
+      $('btn-flip').addEventListener('click', flipQuiz);
+      $('btn-prev').addEventListener('click', () => move(-1));
+      $('btn-next').addEventListener('click', () => move(1));
+      $('btn-quiz-menu').addEventListener('click', () => showScreen('menu-screen'));
+      $('btn-speak-quiz').addEventListener('click', () => speak(current()?.question));
+      $('btn-reshuffle-quiz').addEventListener('click', reshuffleSession);
 
-</script>
+      $('btn-practice-prev').addEventListener('click', () => move(-1));
+      $('btn-practice-next').addEventListener('click', () => move(1));
+      $('btn-answer-toggle').addEventListener('click', togglePracticeAnswer);
+      $('btn-practice-menu').addEventListener('click', () => showScreen('menu-screen'));
+      $('btn-speak-practice').addEventListener('click', () => speak(current()?.question));
+      $('btn-reshuffle-practice').addEventListener('click', reshuffleSession);
+
+      document.addEventListener('keydown', (e) => {
+        if ($('quiz-screen').classList.contains('active')) {
+          if (e.code === 'Space') { e.preventDefault(); flipQuiz(); }
+          if (e.key === 'ArrowRight') move(1);
+          if (e.key === 'ArrowLeft') move(-1);
+        }
+      });
+    }
+
+    wire();
+  </script>
 </body>
 </html>
