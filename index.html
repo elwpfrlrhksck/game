@@ -272,11 +272,13 @@
     }
     #quiz-question { font-size: clamp(24px, 6vw, 48px); font-weight: 900; letter-spacing: -0.045em; }
     #quiz-answer {
-      display:block;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       font-size: clamp(21px, 4.2vw, 38px);
       font-weight: 850;
       color: var(--text);
-      text-align: left;
+      text-align: center;
       white-space: pre-wrap;
       line-height: 1.55;
       word-break: keep-all;
@@ -302,6 +304,9 @@
       box-shadow:var(--shadow);
       overflow:hidden;
     }
+    .practice-flip-card {
+      height: 100%;
+    }
     .practice-main {
       flex:1;
       min-height:0;
@@ -322,22 +327,25 @@
       white-space:pre-line;
     }
     #practice-answer {
-      display:none;
+      display:flex;
+      align-items:center;
+      justify-content:center;
       width:100%;
-      max-height:42dvh;
+      height:100%;
       overflow:auto;
       white-space:pre-wrap;
-      text-align:left;
+      text-align:center;
       color:var(--text);
-      background:rgba(255,255,255,.045);
-      border:1px solid rgba(255,255,255,.14);
-      border-radius:16px;
-      padding:16px;
-      font-size:clamp(17px, 4vw, 24px);
+      background:transparent;
+      border:0;
+      padding:clamp(18px, 4vw, 36px);
+      font-size:clamp(21px, 4.8vw, 38px);
       line-height:1.55;
-      font-weight:750;
+      font-weight:850;
       word-break:keep-all;
     }
+    #practice-answer.long-answer { font-size: clamp(18px, 4.1vw, 30px); }
+    #practice-answer.very-long-answer { font-size: clamp(16px, 3.5vw, 25px); }
     .timer { font-size: 32px; font-family: ui-monospace, Consolas, monospace; color: var(--accent-2); font-weight:900; }
     @media (max-width: 560px) {
       .screen { padding: 10px; }
@@ -366,12 +374,14 @@
       #quiz-answer.long-answer { font-size: clamp(18px, 4.4vw, 27px); }
       #quiz-answer.very-long-answer { font-size: clamp(16px, 3.8vw, 23px); }
       .practice-main { padding: 18px; gap: 12px; }
-      #practice-answer { max-height: 46dvh; font-size: clamp(17px, 4.4vw, 24px); }
+      #practice-answer { font-size: clamp(20px, 5vw, 31px); line-height:1.5; }
+      #practice-answer.long-answer { font-size: clamp(18px, 4.4vw, 27px); }
+      #practice-answer.very-long-answer { font-size: clamp(16px, 3.8vw, 23px); }
       .practice-actions { grid-template-columns: 1fr 1fr; width: 100%; }
       .practice-actions #btn-answer-toggle { grid-column: 1 / -1; }
     }
   </style>
-<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=13165"></script>
+<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=13796"></script>
 </head>
 <body>
   <main id="menu-screen" class="screen active center">
@@ -485,11 +495,16 @@
         <span class="timer" id="practice-timer">00.00</span>
         <button class="btn dark small" id="btn-practice-menu">메뉴</button>
       </div>
-      <div class="practice-card">
-        <div class="face-top"><span id="practice-category">기출</span><span id="practice-mode-label">연속 모드</span></div>
-        <div class="practice-main">
-          <div id="practice-question">문제</div>
-          <div id="practice-answer">답변</div>
+      <div class="card-area">
+        <div id="practice-flip-card" class="flip-card practice-flip-card" role="button" aria-label="연습 카드">
+          <div class="face front">
+            <div class="face-top"><span id="practice-category">기출</span><span id="practice-mode-label">연속 모드</span></div>
+            <div id="practice-question" class="card-content">문제</div>
+          </div>
+          <div class="face back">
+            <div class="face-top"><span id="practice-answer-category">ANSWER</span><span>답변 확인</span></div>
+            <div id="practice-answer" class="card-content">답변</div>
+          </div>
         </div>
       </div>
       <div class="bottom-actions practice-actions">
@@ -676,12 +691,16 @@
       if (!q) return;
       $('practice-counter').textContent = `${state.index + 1} / ${state.session.length}`;
       $('practice-category').textContent = q.category + ' · ' + q.id;
+      $('practice-answer-category').textContent = q.category + ' · ' + q.id;
       $('practice-mode-label').textContent = state.practiceType === 'timer' ? `${state.practiceIntervalSec}초 자동 변경 · 탭하면 다음` : '연속 모드 · 탭하면 다음';
       $('practice-question').textContent = q.question;
+      $('practice-flip-card').classList.remove('flipped');
       const answerEl = $('practice-answer');
       if (answerEl) {
         answerEl.textContent = q.answer;
-        answerEl.style.display = 'none';
+        const lineCount = String(q.answer).split('\n').length;
+        answerEl.classList.toggle('long-answer', q.answer.length > 260 || lineCount > 7);
+        answerEl.classList.toggle('very-long-answer', q.answer.length > 520 || lineCount > 13);
       }
       const answerBtn = $('btn-answer-toggle');
       if (answerBtn) answerBtn.textContent = '답 보기';
@@ -714,12 +733,12 @@
     }
 
     function togglePracticeAnswer() {
-      const el = $('practice-answer');
+      const card = $('practice-flip-card');
       const btn = $('btn-answer-toggle');
-      if (!el || !btn) return;
-      const show = el.style.display !== 'block';
-      el.style.display = show ? 'block' : 'none';
-      btn.textContent = show ? '답 숨기기' : '답 보기';
+      if (!card || !btn) return;
+      const show = !card.classList.contains('flipped');
+      card.classList.toggle('flipped', show);
+      btn.textContent = show ? '문제 보기' : '답 보기';
     }
 
     function loadLastSelection() {
@@ -807,8 +826,7 @@
 
       const btnAnswerToggle = $('btn-answer-toggle');
       if (btnAnswerToggle) btnAnswerToggle.addEventListener('click', (e) => { e.stopPropagation(); togglePracticeAnswer(); });
-      document.querySelector('.practice-card').addEventListener('click', (e) => {
-        if (e.target.closest('#practice-answer')) return;
+      $('practice-flip-card').addEventListener('click', () => {
         move(1);
       });
       $('btn-practice-menu').addEventListener('click', () => showScreen('menu-screen'));
