@@ -225,6 +225,7 @@
       user-select: none;
     }
     .flip-card.flipped { transform: rotateY(180deg); }
+    .flip-card.no-transition { transition: none !important; }
     .face {
       position:absolute;
       inset:0;
@@ -273,12 +274,12 @@
     #quiz-question { font-size: clamp(24px, 6vw, 48px); font-weight: 900; letter-spacing: -0.045em; }
     #quiz-answer {
       display:flex;
-      align-items:center;
-      justify-content:center;
+      align-items:center;        /* 세로 가운데 */
+      justify-content:flex-start; /* 좌우는 왼쪽 정렬 */
       font-size: clamp(21px, 4.2vw, 38px);
       font-weight: 850;
       color: var(--text);
-      text-align: center;
+      text-align: left;
       white-space: pre-wrap;
       line-height: 1.55;
       word-break: keep-all;
@@ -328,13 +329,13 @@
     }
     #practice-answer {
       display:flex;
-      align-items:center;
-      justify-content:center;
+      align-items:center;        /* 세로 가운데 */
+      justify-content:flex-start; /* 좌우는 왼쪽 정렬 */
       width:100%;
       height:100%;
       overflow:auto;
       white-space:pre-wrap;
-      text-align:center;
+      text-align:left;
       color:var(--text);
       background:transparent;
       border:0;
@@ -381,7 +382,7 @@
       .practice-actions #btn-answer-toggle { grid-column: 1 / -1; }
     }
   </style>
-<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=13796"></script>
+<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=14148"></script>
 </head>
 <body>
   <main id="menu-screen" class="screen active center">
@@ -651,11 +652,20 @@
 
     function current() { return state.session[state.index]; }
 
+    function resetCardToFrontInstant(cardId) {
+      const card = $(cardId);
+      if (!card) return;
+      card.classList.add('no-transition');
+      card.classList.remove('flipped');
+      void card.offsetHeight;
+      requestAnimationFrame(() => card.classList.remove('no-transition'));
+    }
+
     function renderQuiz() {
       const q = current();
       if (!q) return;
       state.flipped = false;
-      $('flip-card').classList.remove('flipped');
+      resetCardToFrontInstant('flip-card');
       $('quiz-counter').textContent = `${state.index + 1} / ${state.session.length}`;
       $('quiz-category').textContent = q.category + ' · ' + q.id;
       $('quiz-question').textContent = q.question;
@@ -694,7 +704,7 @@
       $('practice-answer-category').textContent = q.category + ' · ' + q.id;
       $('practice-mode-label').textContent = state.practiceType === 'timer' ? `${state.practiceIntervalSec}초 자동 변경 · 탭하면 다음` : '연속 모드 · 탭하면 다음';
       $('practice-question').textContent = q.question;
-      $('practice-flip-card').classList.remove('flipped');
+      resetCardToFrontInstant('practice-flip-card');
       const answerEl = $('practice-answer');
       if (answerEl) {
         answerEl.textContent = q.answer;
