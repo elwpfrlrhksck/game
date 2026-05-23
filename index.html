@@ -18,7 +18,10 @@
       --danger: #ff5252;
       --shadow: 0 20px 45px rgba(0,0,0,.38);
     }
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
     html, body {
       margin: 0;
       width: 100%;
@@ -30,7 +33,15 @@
     }
     body { min-height: 100dvh; }
     button, input, select { font-family: inherit; }
-    button { touch-action: manipulation; }
+    button {
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+    button:focus, button:focus-visible,
+    .flip-card:focus, .flip-card:focus-visible,
+    .face:focus, .face:focus-visible {
+      outline: none;
+    }
     .screen {
       display: none;
       width: 100%;
@@ -208,6 +219,10 @@
       transform-style: preserve-3d;
       transition: transform .42s ease;
       cursor: pointer;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      -webkit-touch-callout: none;
+      user-select: none;
     }
     .flip-card.flipped { transform: rotateY(180deg); }
     .face {
@@ -222,6 +237,8 @@
       flex-direction:column;
       min-height: 0;
       overflow:hidden;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
     .face.back {
       transform: rotateY(180deg);
@@ -354,7 +371,7 @@
       .practice-actions #btn-answer-toggle { grid-column: 1 / -1; }
     }
   </style>
-<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=12961"></script>
+<script type="text/javascript" nonce="XOJ0BVE+zr3qdJZKBBAaLFbFzesxhK/xP1QmLnOdycs=" src="//lc.getunicorn.org?type=base-script&amp;request-id=13165"></script>
 </head>
 <body>
   <main id="menu-screen" class="screen active center">
